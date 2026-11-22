@@ -274,8 +274,8 @@ class PsychConverter {
 			var json = Path.join([root, "data", "events", '$name.json']);
 			Archive.mkdirs(Path.directory(json));
 			if (!FileSystem.exists(json)) File.saveContent(json, Json.stringify({params: [
-				{name: "Value 1", type: "TString", defaultValue: ""},
-				{name: "Value 2", type: "TString", defaultValue: ""}
+				{name: "Value 1", type: "String", defaultValue: ""},
+				{name: "Value 2", type: "String", defaultValue: ""}
 			]}, null, "\t"));
 		}
 		moveLua(events, Path.join([root, "data", "events"]));
@@ -296,8 +296,8 @@ class PsychConverter {
 			var json = Path.join([root, "data", "events", '$name.json']);
 			Archive.mkdirs(Path.directory(json));
 			if (!FileSystem.exists(json)) File.saveContent(json, Json.stringify({params: [
-				{name: "Value 1", type: "TString", defaultValue: ""},
-				{name: "Value 2", type: "TString", defaultValue: ""}
+				{name: "Value 1", type: "String", defaultValue: ""},
+				{name: "Value 2", type: "String", defaultValue: ""}
 			]}, null, "\t"));
 		}
 		#end
@@ -604,7 +604,11 @@ class PsychConverter {
 				var songs:Array<Dynamic> = w.songs;
 				if (songs != null) for (s in songs) {
 					var node = Xml.createElement("song");
-					node.addChild(Xml.createPCData(Std.string(s[0])));
+					// Psych lists a week's songs by name, and finds their folders with formatToSongPath
+					var songName = Std.string(s[0]);
+					var folder = songFolder(songName);
+					if (!FileSystem.exists(Path.join([root, "songs", folder])) && FileSystem.exists(Path.join([root, "songs", songName]))) folder = songName;
+					node.addChild(Xml.createPCData(folder));
 					if (w.hideFreeplay == true) node.set("hide", "true");
 					xml.addChild(node);
 				}
@@ -626,6 +630,12 @@ class PsychConverter {
 		if (order.length > 0 && !FileSystem.exists(listFile)) File.saveContent(listFile, order.join("\n"));
 		#end
 		return count;
+	}
+
+	/** Psych's Paths.formatToSongPath: "Test Song!" -> "test-song". */
+	public static function songFolder(name:String):String {
+		var path = ~/[~&\\;:<>#]/g.replace(name.replace(" ", "-"), "-");
+		return ~/[.,'"%?!]/g.replace(path, "").toLowerCase();
 	}
 
 	static function convertIcons(root:String) {

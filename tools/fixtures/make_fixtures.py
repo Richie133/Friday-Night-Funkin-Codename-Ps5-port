@@ -87,7 +87,8 @@ os.makedirs(os.path.join(psych, "scripts"))
 json.dump({"name": "Psych Test Mod", "description": "A Psych Engine mod made for the port's tests.", "restart": False},
           open(os.path.join(psych, "pack.json"), "w"))
 for diff, suffix in [("normal", ""), ("hard", "-hard")]:
-    chart = {"song": {"song": "Test Song", "notes": chart_notes(), "events": [[2000, [["Hey!", "BF", "0.6"]]]],
+    chart = {"song": {"song": "Test Song", "notes": chart_notes(), "events": [[2000, [["Hey!", "BF", "0.6"]]],
+                                                                         [4000, [["Lua Test Event", "a", "b"], ["Add Camera Zoom", "0.03", "0.05"]]]],
                       "bpm": 120, "needsVoices": True, "speed": 2.2 if diff == "hard" else 1.8,
                       "player1": "bf", "player2": "psych-dad", "gfVersion": "gf", "stage": "psych-stage"}}
     json.dump(chart, open(os.path.join(psych, "data", "test-song", f"test-song{suffix}.json"), "w"))
@@ -112,10 +113,40 @@ open(os.path.join(psych, "stages", "psych-stage.lua"), "w").write(
     "function onCreate()\n\tmakeLuaSprite('bg', 'stageback', -600, -200)\n\tsetScrollFactor('bg', 0.9, 0.9)\n"
     "\taddLuaSprite('bg', false)\n\tmakeLuaSprite('front', 'stagefront', -650, 600)\n\tscaleObject('front', 1.1, 1.1)\n"
     "\taddLuaSprite('front', false)\nend\n")
-open(os.path.join(psych, "scripts", "hello.lua"), "w").write(
-    "local hits = 0\nfunction onCreatePost()\n\tdebugPrint('Psych Lua layer is running')\nend\n"
-    "function goodNoteHit(id, direction, noteType, isSustainNote)\n\thits = hits + 1\n"
-    "\tif hits % 10 == 0 then cameraFlash('game', 'FFFFFF', 0.2) end\nend\n")
+open(os.path.join(psych, "scripts", "hello.lua"), "w").write("""local hits = 0
+function onCreate()
+	makeLuaText('info', 'Psych Lua: ready', 600, 20, 60)
+	setTextSize('info', 24)
+	setTextColor('info', '00FF99')
+	addLuaText('info')
+end
+function onCreatePost()
+	debugPrint('Psych Lua layer is running (', version, ')')
+	setProperty('info.alpha', 0.9)
+	runTimer('tick', 1, 0)
+end
+function onTimerCompleted(tag, loops, left)
+	if tag == 'tick' then
+		setTextString('info', 'beat ' .. curBeat .. ' | hits ' .. hits .. ' | band ' .. bit.band(12, 10) .. ' | hp ' .. string.format('%.2f', getHealth()))
+	end
+end
+function onBeatHit()
+	if curBeat % 4 == 0 then doTweenAngle('spin', 'iconP2', getProperty('iconP2.angle') + 360, 0.4, 'quadOut') end
+end
+function goodNoteHit(id, direction, noteType, isSustainNote)
+	hits = hits + 1
+	if hits % 10 == 0 then cameraFlash('game', 'FFFFFF', 0.2) end
+end
+function onEvent(name, v1, v2)
+	if name == 'Lua Test Event' then debugPrint('custom event: ', v1, ' ', v2) end
+end
+""")
+os.makedirs(os.path.join(psych, "custom_events"))
+open(os.path.join(psych, "custom_events", "Lua Test Event.txt"), "w").write("An event made for the port's tests.\n")
+open(os.path.join(psych, "custom_events", "Lua Test Event.lua"), "w").write(
+    "function onEvent(name, v1, v2)\n\tif name == 'Lua Test Event' then setProperty('defaultCamZoom', 0.95) end\nend\n")
+open(os.path.join(psych, "data", "test-song", "script.lua"), "w").write(
+    "function onSongStart()\n\tdebugPrint('song script: the song started')\nend\n")
 json.dump({"songs": [["Test Song", "psych-dad", [146, 113, 253]]], "weekCharacters": ["dad", "bf", "gf"],
            "weekBackground": "stage", "storyName": "PSYCH TEST WEEK", "weekName": "Psych Week", "freeplayColor": [146, 113, 253],
            "startUnlocked": True, "hiddenUntilUnlocked": False, "hideStoryMode": False, "hideFreeplay": False,

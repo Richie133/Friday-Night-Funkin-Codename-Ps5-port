@@ -579,7 +579,9 @@ class PsychFunctions {
 		if (g == null) return;
 		var cam = getCamOther();
 		for (t in debugTexts) t.y += 20;
-		var t = new FlxText(10, 10, FlxG.width - 20, text, 16);
+		// below the FPS counter when it is showing
+		var top = funkin.backend.system.framerate.Framerate.debugMode > 0 ? 70 : 10;
+		var t = new FlxText(10, top, FlxG.width - 20, text, 16);
 		t.setFormat(Paths.font("vcr.ttf"), 16, color, LEFT, OUTLINE, FlxColor.BLACK);
 		t.scrollFactor.set();
 		t.cameras = [cam];
