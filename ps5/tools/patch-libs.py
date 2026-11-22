@@ -11,6 +11,7 @@ already there, so the script can run again on the same checkouts. The changes:
          src/hx/libs/std/{Process,Sys}.cpp <sys/wait.h> on the console
   lime   project/Build.xml                 OpenAL Soft and desktop GL on -Dps5, and the
                                            PS5 SDL file list (ps5/lime/sdl-files-ps5.xml)
+         lib/glad-files.xml                GLAD's GL loader on -Dps5
          lib/custom/openal/include         OpenAL Soft settings for the console
                                            (ps5/lime/openal)
 """
@@ -70,6 +71,12 @@ def main():
     ]:
         if edit(build, old, new):
             changed.append("lime Build.xml")
+
+    # lime: GLAD's desktop GL loader (gl.c) on the console too
+    if edit(os.path.join(lime, "project", "lib", "glad-files.xml"),
+            '<file name="${NATIVE_TOOLKIT_PATH}/glad/src/gl.c" if="windows || mac || linux" />',
+            '<file name="${NATIVE_TOOLKIT_PATH}/glad/src/gl.c" if="windows || mac || linux || ps5" />'):
+        changed.append("lime glad-files.xml")
 
     # lime: OpenAL Soft settings for the console (it is not __linux__, so it would get none)
     openal = os.path.join(lime, "project", "lib", "custom", "openal", "include")

@@ -116,6 +116,15 @@ for source in "$root"/ps5/native/*.c; do
   fi
   objects+=("$object")
 done
+for source in "$root"/ps5/native/*.cpp; do
+  object=$build/obj/$(basename "$source").o
+  if [[ ! -f $object || $source -nt $object ]]; then
+    echo "  CXX $(basename "$source")"
+    env PS5_PAYLOAD_SDK="$PS5_PAYLOAD_SDK" PS5_CLANG="$PS5_CLANG" USE_CCACHE=0 "${cc[@]}" \
+      -std=c++17 -O2 -fexceptions -frtti -ffunction-sections -fdata-sections -c "$source" -o "$object"
+  fi
+  objects+=("$object")
+done
 for name in app_crt app_cpp_runtime; do
   object=$build/obj/$name.o
   source=$root/tooling/native/$name.cpp
@@ -128,6 +137,13 @@ done
 
 # ---------------------------------------------------------------- 6. link
 step "Link"
+# hxcpp puts its runtime libraries (std, regexp, zlib, ssl...) into the game's
+# archive as whole .a members; the linker wants them as archives of their own
+hxlibs=$build/hxcpp-libs
+rm -rf "$hxlibs" && mkdir -p "$hxlibs"
+mapfile -t nested < <(llvm-ar-18 t "$libgame" | grep '\.a$' | sort -u)
+(cd "$hxlibs" && llvm-ar-18 x "$libgame" "${nested[@]}")
+hxcpp_archives=("$hxlibs"/*.a)
 group=$root/.deps/ps5-opengl/libps5opengl-group.a
 wraps=()
 for symbol in malloc calloc realloc free posix_memalign malloc_usable_size fcntl; do
@@ -135,11 +151,11 @@ for symbol in malloc calloc realloc free posix_memalign malloc_usable_size fcntl
 done
 stubs=("$PS5_OPENGL_PREFIX/lib/libSceAgc.so" "$PS5_OPENGL_PREFIX/lib/libSceAgcDriver.so")
 "$PS5_PAYLOAD_SDK/bin/prospero-lld" \
-  -T "$root/tooling/native/ps5-pie.ld" --eh-frame-hdr "${wraps[@]}" \
+  -T "$root/tooling/native/ps5-pie.ld" --eh-frame-hdr --error-limit=0 "${wraps[@]}" \
   --version-script "$root/tooling/native/app-symbols.map" \
   -e _start -o "$build/llvm-pie.elf" \
   "$build/obj/app_crt.o" "$build/obj/app_cpp_runtime.o" "${objects[@]}" \
-  --start-group "$libgame" "$liblime" \
+  --start-group "$libgame" "${hxcpp_archives[@]}" "$liblime" \
     "$homebrew/lib/libarchive.a" "$homebrew/lib/liblzma.a" "$homebrew/lib/libzstd.a" \
     "$homebrew/lib/libbz2.a" "$homebrew/lib/libz.a" "$group" \
   --end-group \

@@ -511,6 +511,62 @@ int pclose(FILE *stream)
     return -1;
 }
 
+/* Reentrant time functions the console's libc does not export (Lua's os.date,
+ * hxcpp's Date). Weak, in case a library brings its own. */
+static pthread_mutex_t time_lock = PTHREAD_MUTEX_INITIALIZER;
+
+__attribute__((weak)) struct tm *localtime_r(const time_t *timer, struct tm *result)
+{
+    pthread_mutex_lock(&time_lock);
+    struct tm *value = localtime(timer);
+    if (value) *result = *value;
+    pthread_mutex_unlock(&time_lock);
+    return value ? result : NULL;
+}
+
+__attribute__((weak)) struct tm *gmtime_r(const time_t *timer, struct tm *result)
+{
+    pthread_mutex_lock(&time_lock);
+    struct tm *value = gmtime(timer);
+    if (value) *result = *value;
+    pthread_mutex_unlock(&time_lock);
+    return value ? result : NULL;
+}
+
+__attribute__((weak)) time_t timegm(struct tm *tm)
+{
+    /* days from 1970-01-01 to the given date (proleptic Gregorian) */
+    long long year = tm->tm_year + 1900LL, month = tm->tm_mon;
+    year += month / 12;
+    month %= 12;
+    if (month < 0) { month += 12; --year; }
+    static const int before[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    long long days = (year - 1970) * 365 + before[month] + tm->tm_mday - 1;
+    long long y = month < 2 ? year - 1 : year; /* leap days up to the date */
+    days += (y / 4 - y / 100 + y / 400) - (1969 / 4 - 1969 / 100 + 1969 / 400);
+    return (time_t)(((days * 24 + tm->tm_hour) * 60 + tm->tm_min) * 60 + tm->tm_sec);
+}
+
+/* No temporary-file service: Lua's io.tmpfile and os.tmpname use the cache folder */
+__attribute__((weak)) FILE *tmpfile(void)
+{
+    char name[] = "/data/codename-ps5/cache/tmp-XXXXXX";
+    int file = mkstemp(name);
+    if (file < 0) return NULL;
+    unlink(name);
+    return fdopen(file, "w+b");
+}
+
+__attribute__((weak)) char *tmpnam(char *buffer)
+{
+    static char name[64];
+    static unsigned counter;
+    char *out = buffer ? buffer : name;
+    snprintf(out, 64, "/data/codename-ps5/cache/tmp-%llu-%u", (unsigned long long)sceKernelGetProcessTime(),
+             __atomic_add_fetch(&counter, 1u, __ATOMIC_RELAXED));
+    return out;
+}
+
 /* Mesa's per-thread GL context holder: initialised statically in this build */
 void cne_glapi_tls_context_init(void) __asm__("_ZTH23_mesa_glapi_tls_Context");
 void cne_glapi_tls_context_init(void) {}
