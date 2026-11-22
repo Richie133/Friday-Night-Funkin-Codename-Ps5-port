@@ -14,11 +14,14 @@ homebrew app (`PPSA52210`).
 
 **Status: beta.** The game code has been run in the Linux build of the port; the
 console layer (SDL drivers, linking, packaging) is being tested on hardware now.
-0.1.0 crashed at start-up on a PS5; 0.1.1 fixes that cause. Please report problems in
+0.1.0 and 0.1.1 stopped at start-up on a PS5; 0.1.2 fixes the causes found so far.
+Please report problems in
 [Issues](https://github.com/Richie133/Friday-Night-Funkin-Codename-Ps5-port/issues)
-with `/data/codename-ps5/logs/codename.log`, or a photo of the crash screen: each
-release has `PPSA52210-symbols.txt.gz`, the function addresses of its `eboot.bin`
-(the console loads it at `0x400000`; subtract that from the addresses it shows).
+with `/data/codename-ps5/logs/crash.txt` and `codename.log` (same folder), or a photo
+of the notification the game shows when it stops. Addresses are written as
+`eboot+0x…`; each release has `PPSA52210-symbols.txt.gz`, the function addresses of
+its `eboot.bin`, to turn them into names (the console's own error screen adds
+`0x400000` to them).
 
 ## What it adds to Codename Engine
 

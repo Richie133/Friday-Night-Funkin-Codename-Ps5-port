@@ -23,7 +23,7 @@ PacBrew: libarchive, liblzma, libzstd, libbz2, zlib ─────────�
 | `lime/sdl-files-ps5.xml` | The SDL3 sources Lime builds for the console, plus `sdl/SDL_ps5.c`; it replaces Lime's own list on `-Dps5`. |
 | `lime/openal/` | OpenAL Soft settings for the console (audio goes out through SDL3). |
 | `sdl/` | SDL3's private-platform slots, filled for the PS5: the window and OpenGL context (EGL from ps5-opengl, mode from `/data/codename-ps5/display.cfg`), DualSense pads with the touchpad, the touchpad as a pointer, USB keyboards and mice, `sceAudioOut`, and the app's paths. |
-| `native/` | C linked next to the engine: the log file, the browser and notification calls the game makes (`funkin.ps5.PS5Native`), name lookup and socket shims for a sandboxed title, the heap ps5-opengl uses, and libc entry points the clean-room runtime lacks. |
+| `native/` | C linked next to the engine: the log file, crash reports (`crash_report.c`), the browser and notification calls the game makes (`funkin.ps5.PS5Native`), name lookup and socket shims for a sandboxed title, the heap ps5-opengl uses, and libc entry points the clean-room runtime lacks. |
 | `tools/patch-libs.py` | The small edits hxcpp and Lime need; they only act on `-Dps5`, so the same checkouts still build for Linux. |
 | `tools/build-ps5.sh` | The whole build. |
 
@@ -36,8 +36,19 @@ answers listings from it; HTTPS uses the certificates in `assets/ps5/cacert.pem`
 
 - The CREATE button is the system's: the port uses □ and △ instead.
 - `/data/codename-ps5/logs/codename.log` has the game's output; send it with bug reports.
+- When the game stops on a failed assertion, a crash signal or `std::terminate`, it shows
+  a notification with the reason and writes the details and the call stack to
+  `/data/codename-ps5/logs/crash.txt`. Addresses there are `eboot+0x…` offsets into
+  `eboot.bin`, the numbering of each release's `PPSA52210-symbols.txt.gz`; the console's
+  own error screen shows them plus `0x400000`.
+- Libraries that `dlopen()` a system library (as Dear ImGui's GL loader did with libGL)
+  find nothing on the console: give them the function directly (`patch-libs.py`).
 - `display.cfg` is written by Options > PS5 > Picture and read before the window opens,
   so resolution and refresh rate apply at the next start.
-- Not tested on a console yet. The likeliest trouble spots are the SDL drivers
-  (`sdl/SDL_ps5.c`), the mouse library (loaded only when the system has it), and
-  memory use with large mods.
+- Being tested on a console now (0.1.0 and 0.1.1 stopped at start-up; see the release
+  notes). The likeliest trouble spots are the SDL drivers (`sdl/SDL_ps5.c`), the
+  keyboard and mouse libraries (loaded at run time, only when the system has them),
+  and memory use with large mods.
+- Only some system libraries are loaded for a native title; a function imported from
+  another one is left as a null pointer (the 0.1.0 crash). `sceKernelLoadStartModule`
+  them at run time instead (`cne_ps5_load_module` in `native/codename_ps5.c`).

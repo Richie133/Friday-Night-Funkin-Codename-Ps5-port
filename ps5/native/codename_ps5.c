@@ -511,11 +511,7 @@ int getnameinfo(const struct sockaddr *address, socklen_t length, char *host, si
 /* ------------------------------------------------------------------------- */
 /* libc entry points missing from the runtime                                */
 
-__attribute__((noreturn)) void __assert(const char *function, const char *file, int line, const char *expression)
-{
-    fprintf(stderr, "[codename-ps5] assertion failed: %s (%s:%d, %s)\n", expression, file, line, function);
-    abort();
-}
+/* __assert is in crash_report.c, which also reports the call stack */
 
 int mkstemps(char *template_name, int suffix_length)
 {

@@ -1,6 +1,6 @@
 An unofficial port of Codename Engine (Friday Night Funkin') to jailbroken PS5 consoles, made with AI help. It is not made or supported by the Codename Engine team, the Funkin' Crew or Sony. Support them by playing on PC: [codename-engine.com](https://codename-engine.com).
 
-**Beta.** 0.1.1 fixes the crash right at start-up that 0.1.0 had on the console (the USB keyboard library is now loaded at run time instead of imported). Please report problems in Issues with `/data/codename-ps5/logs/codename.log`, or a photo of the crash screen: `PPSA52210-symbols.txt.gz` turns its addresses into function names.
+**Beta.** 0.1.2 fixes the stop at start-up that 0.1.1 had on the console ("abort is called"): Dear ImGui, which Codename uses for its debug console, looked for a `libGL` the PS5 does not have, and the first frame stopped on its check. It now gets OpenGL from the console's driver. If the game still stops, it now shows a notification with the reason and writes the details (the failed check or crash and the call stack) to `/data/codename-ps5/logs/crash.txt`. Please report problems in Issues with that file and `codename.log` from the same folder, or a photo of the notification. `PPSA52210-symbols.txt.gz` turns the `eboot+0x…` addresses into function names.
 
 Install `PPSA52210.zip` with your homebrew app installer.
 

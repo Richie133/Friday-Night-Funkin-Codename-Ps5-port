@@ -20,10 +20,14 @@ PHDRS {
 
 SECTIONS {
     .text 0 : ALIGN(CONSTANT(MAXPAGESIZE)) {
+        /* Codename PS5 port: where the image starts and its code ends, for the
+         * crash reports in ps5/native/crash_report.c */
+        PROVIDE_HIDDEN(__cne_image_base = .);
         QUAD(0xcccccccccccccccc)
         QUAD(0xcccccccccccccccc)
         *(.text .text.*)
         *(.plt .plt.*)
+        PROVIDE_HIDDEN(__cne_text_end = .);
     } : text
 
     .eh_frame_hdr : ALIGN(CONSTANT(MAXPAGESIZE)) {

@@ -308,7 +308,8 @@ class Main extends Sprite
 	private static function initImGui() {
 		#if IMGUI_ENABLED
 		//codename styled
-		var vcrFont = ImGuiIO.fonts.addFontFromFileTTF("assets/fonts/vcr.ttf");
+		// PS5_PORT: on the console the working folder is the data folder, the font is in /app0
+		var vcrFont = ImGuiIO.fonts.addFontFromFileTTF(#if ps5 funkin.ps5.PS5.appRoot + #end "assets/fonts/vcr.ttf");
 		ImGuiIO.fontDefault = vcrFont;
 		var style = ImGui.getStyle();
 		style.windowBorderSize = 2;

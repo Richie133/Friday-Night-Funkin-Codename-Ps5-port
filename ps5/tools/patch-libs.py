@@ -14,6 +14,9 @@ already there, so the script can run again on the same checkouts. The changes:
          lib/glad-files.xml                GLAD's GL loader on -Dps5
          lib/custom/openal/include         OpenAL Soft settings for the console
                                            (ps5/lime/openal)
+         lib/imgui/backends/               Dear ImGui's GL loader takes GL functions
+           imgui_impl_opengl3_loader.h     from EGL on the console (no libGL to dlopen)
+         src/backend/sdl/SDLWindow.cpp     logs a failed ImGui renderer start
 """
 import os
 import shutil
@@ -89,6 +92,35 @@ def main():
                 '#if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)',
                 '#if defined(HX_PS5)\n    #include "platforms/ps5/' + header + '"\n#elif defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)'):
             changed.append("lime OpenAL config")
+
+    # lime: Dear ImGui's OpenGL loader (gl3w) dlopen()s libGL, which the console does
+    # not have: its renderer backend never started and the first frame stopped on
+    # ImGui_ImplOpenGL3_NewFrame's assertion. ps5-opengl is linked in, and EGL hands
+    # out every GL entry point.
+    if edit(os.path.join(lime, "project", "lib", "imgui", "backends", "imgui_impl_opengl3_loader.h"),
+            "#elif defined(__APPLE__)\n#include <dlfcn.h>\n\nstatic void *libgl = NULL;",
+            "#elif defined(__PROSPERO__)\n"
+            "/* PS5 (Codename Engine port): the GL driver is linked into the app; ask EGL. */\n"
+            "typedef void (*imgl3w_egl_proc)(void);\n"
+            "imgl3w_egl_proc eglGetProcAddress(const char *procname);\n"
+            "static int open_libgl(void) { return GL3W_OK; }\n"
+            "static void close_libgl(void) {}\n"
+            "static GL3WglProc get_proc(const char *proc) { return (GL3WglProc)eglGetProcAddress(proc); }\n"
+            "#elif defined(__APPLE__)\n#include <dlfcn.h>\n\nstatic void *libgl = NULL;",
+            marker="#elif defined(__PROSPERO__)\n/* PS5 (Codename Engine port)"):
+        changed.append("lime ImGui GL loader")
+    # hxcpp's compile cache keys an object on its .cpp and not on the headers it
+    # includes: change the backend's .cpp too, so no object built before is reused
+    if edit(os.path.join(lime, "project", "lib", "imgui", "backends", "imgui_impl_opengl3.cpp"),
+            "#define IMGL3W_IMPL\n#define IMGUI_IMPL_OPENGL_LOADER_IMGL3W\n",
+            "#define IMGL3W_IMPL // PS5 port: on __PROSPERO__ the loader asks EGL for GL functions\n"
+            "#define IMGUI_IMPL_OPENGL_LOADER_IMGL3W\n"):
+        changed.append("lime ImGui GL backend")
+    # ... and say so in the log if the ImGui renderer backend still cannot start
+    if edit(os.path.join(lime, "project", "src", "backend", "sdl", "SDLWindow.cpp"),
+            '\t\t\t\tImGui_ImplOpenGL3_Init("#version 150");',
+            '\t\t\t\tif (!ImGui_ImplOpenGL3_Init("#version 150")) printf("[lime] the ImGui OpenGL backend did not start\\n");'):
+        changed.append("lime SDLWindow")
 
     print("patch-libs: " + (", ".join(sorted(set(changed))) if changed else "already applied"))
 
