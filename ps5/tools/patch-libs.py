@@ -8,6 +8,7 @@ already there, so the script can run again on the same checkouts. The changes:
 
   hxcpp  toolchain/ps5-toolchain.xml      the PS5 compiler (ps5/hxcpp/ps5-toolchain.xml)
          tools/hxcpp/BuildTool.hx          -Dps5 picks that toolchain
+         src/hx/libs/std/{Process,Sys}.cpp <sys/wait.h> on the console
   lime   project/Build.xml                 OpenAL Soft and desktop GL on -Dps5, and the
                                            PS5 SDL file list (ps5/lime/sdl-files-ps5.xml)
          lib/custom/openal/include         OpenAL Soft settings for the console
@@ -45,6 +46,17 @@ def main():
             '      else if (defines.exists ("ps5"))\n      {\n         defines.set ("toolchain", "ps5");\n         defines.set ("BINDIR", "PS5");\n      }\n      else if (defines.exists ("gcw0"))',
             marker='defines.set ("toolchain", "ps5");'):
         changed.append("hxcpp BuildTool")
+
+    # hxcpp's runtime: the console's libc keeps the wait() macros in <sys/wait.h>
+    std = os.path.join(hxcpp, "src", "hx", "libs", "std")
+    if edit(os.path.join(std, "Process.cpp"),
+            "#   if defined(ANDROID) || defined(BLACKBERRY) || defined(__EMSCRIPTEN__)",
+            "#   if defined(ANDROID) || defined(BLACKBERRY) || defined(__EMSCRIPTEN__) || defined(HX_PS5)"):
+        changed.append("hxcpp Process.cpp")
+    if edit(os.path.join(std, "Sys.cpp"),
+            "#ifdef __EMSCRIPTEN__\n   #include <sys/wait.h>",
+            "#if defined(__EMSCRIPTEN__) || defined(HX_PS5)\n   #include <sys/wait.h>"):
+        changed.append("hxcpp Sys.cpp")
 
     # lime: Build.xml
     build = os.path.join(lime, "project", "Build.xml")

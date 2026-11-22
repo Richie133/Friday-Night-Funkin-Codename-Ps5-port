@@ -11,7 +11,7 @@
   Copied into hxcpp's toolchain/ folder by ps5/tools/setup.sh.
 -->
 
-<!-- environment variables are hxcpp defines: PS5_PAYLOAD_SDK and PS5_CLANG come from ps5/tools/env.sh -->
+<!-- environment variables are hxcpp defines: PS5_PAYLOAD_SDK and PS5_CLANG are set by ps5/tools/build-ps5.sh -->
 <error value="Set PS5_PAYLOAD_SDK to the ps5-payload-sdk folder (ps5/tools/setup.sh does)" unless="PS5_PAYLOAD_SDK" />
 <set name="PS5_CLANG" value="clang-18" unless="PS5_CLANG" />
 
