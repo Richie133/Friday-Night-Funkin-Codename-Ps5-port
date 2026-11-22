@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Strings of the PS5 port (funkin.ps5). -->
+<language>
+	<group name="OptionsMenu">
+		<str id="optionsTree.ps5-name">PS5</str>
+		<str id="optionsTree.ps5-desc">Picture, controller, touchpad and mod settings of the PS5 port.</str>
+	</group>
+
+	<group name="PS5Options">
+		<str id="PS5Options.graphics-name">Picture</str>
+		<str id="PS5Options.graphics-desc">Resolution, refresh rate, frame rate and quality.</str>
+		<str id="PS5Options.controller-name">Controller and touchpad</str>
+		<str id="PS5Options.controller-desc">How the touchpad, the buttons and note timing work.</str>
+		<str id="PS5Options.mods-name">Mods</str>
+		<str id="PS5Options.mods-desc">The online mod browser, installed mods and the download cache.</str>
+		<str id="PS5Options.warning-name">About this port</str>
+		<str id="PS5Options.warning-desc">Shows the notice again: this is an unofficial, AI-made port.</str>
+		<str id="PS5Options.support-name">Support Codename Engine</str>
+		<str id="PS5Options.support-desc">Opens codename-engine.com in the PS5's browser. Play it on PC to support its developers!</str>
+		<str id="PS5Options.source-name">Source code of the port</str>
+		<str id="PS5Options.source-desc">Opens the port's GitHub page, where bugs of the port can be reported.</str>
+
+		<str id="PS5Options.Graphics.resolution-name">Resolution</str>
+		<str id="PS5Options.Graphics.resolution-desc">The size the game draws at. Applies the next time the game starts. 4K draws four times as many pixels as 1080p.</str>
+		<str id="PS5Options.Graphics.refresh-name">Refresh rate</str>
+		<str id="PS5Options.Graphics.refresh-desc">120 Hz needs a TV that supports it. Applies the next time the game starts.</str>
+		<str id="PS5Options.Graphics.vsync-name">V-Sync</str>
+		<str id="PS5Options.Graphics.vsync-desc">Waits for the TV before each frame: no tearing, but up to one frame more input delay. Off by default.</str>
+		<str id="PS5Options.Graphics.framerate-name">Frame rate</str>
+		<str id="PS5Options.Graphics.framerate-desc">How many times a second the game updates and draws. Higher means less input delay.</str>
+		<str id="PS5Options.Graphics.current-name">Current picture</str>
+		<str id="PS5Options.Graphics.current-desc">The game started at {0}, {1} Hz.</str>
+
+		<str id="PS5Options.Controller.touchpadMouse-name">Touchpad moves the pointer</str>
+		<str id="PS5Options.Controller.touchpadMouse-desc">Slide a finger on the touchpad to move the mouse pointer, and click it to click. For the editors and menus.</str>
+		<str id="PS5Options.Controller.touchpadSpeed-name">Pointer speed</str>
+		<str id="PS5Options.Controller.touchpadSpeed-desc">How far the pointer moves for a slide on the touchpad.</str>
+		<str id="PS5Options.Controller.touchpadCharter-name">Touchpad opens the chart editor</str>
+		<str id="PS5Options.Controller.touchpadCharter-desc">Clicking the touchpad during a song opens the chart editor on that song.</str>
+		<str id="PS5Options.Controller.menuHints-name">Button hints</str>
+		<str id="PS5Options.Controller.menuHints-desc">Shows which button does what at the bottom of the main menu.</str>
+		<str id="PS5Options.Controller.layout-name">Notes: D-pad and sticks, or square cross triangle circle</str>
+		<str id="PS5Options.Controller.layout-desc">Left, down, up, right on the D-pad or either stick; or square, cross, triangle, circle. OPTIONS pauses. A USB keyboard works as on PC.</str>
+
+		<str id="PS5Options.Mods.browser-name">Mod browser</str>
+		<str id="PS5Options.Mods.browser-desc">Browse and download mods from GameBanana and Game Jolt.</str>
+		<str id="PS5Options.Mods.installed-name">Installed mods</str>
+		<str id="PS5Options.Mods.installed-desc">Play, inspect or delete the mods in the mods folder.</str>
+		<str id="PS5Options.Mods.showRated-name">Show mods with content ratings</str>
+		<str id="PS5Options.Mods.showRated-desc">GameBanana marks some mods for violence, language or other mature content. They are hidden unless this is on.</str>
+		<str id="PS5Options.Mods.clearCache-name">Clear the download cache</str>
+		<str id="PS5Options.Mods.clearCache-desc">Deletes cached pictures and unfinished downloads. Installed mods are kept.</str>
+		<str id="PS5Options.Mods.folder-name">Mods folder</str>
+		<str id="PS5Options.Mods.folder-desc">Mods are kept in {0}. You can copy mods there over FTP too.</str>
+	</group>
+</language>

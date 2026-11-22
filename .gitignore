@@ -1,0 +1,10 @@
+# build trees and downloaded dependencies
+/.deps/
+/build/
+/dist/
+/engine/export/
+/engine/assets
+/engine/.haxelib/
+*.part
+.DS_Store
+/runtime/libc.prx

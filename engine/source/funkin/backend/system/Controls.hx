@@ -92,7 +92,10 @@ class Controls extends FlxActionSet
 
 	// Note Controls
 
-	#if !switch
+	#if PS5_PORT
+	// PS5 port: the D-pad and both sticks for one hand, the face buttons (□ ✕ △ ○) for the other
+	@:rawGamepad([DPAD_UP, LEFT_STICK_DIGITAL_UP, RIGHT_STICK_DIGITAL_UP, Y])
+	#elseif !switch
 	@:rawGamepad([DPAD_UP, LEFT_STICK_DIGITAL_UP])
 	#else
 	@:rawGamepad([DPAD_UP, LEFT_STICK_DIGITAL_UP, RIGHT_STICK_DIGITAL_UP])
@@ -101,7 +104,10 @@ class Controls extends FlxActionSet
 	@:justPressed("note-up") public var NOTE_UP_P(get, set): Bool;
 	@:justReleased("note-up") public var NOTE_UP_R(get, set): Bool;
 
-	#if !switch
+	#if PS5_PORT
+	// PS5 port: the D-pad and both sticks for one hand, the face buttons (□ ✕ △ ○) for the other
+	@:rawGamepad([DPAD_LEFT, LEFT_STICK_DIGITAL_LEFT, RIGHT_STICK_DIGITAL_LEFT, X])
+	#elseif !switch
 	@:rawGamepad([DPAD_LEFT, LEFT_STICK_DIGITAL_LEFT])
 	#else
 	@:rawGamepad([DPAD_LEFT, LEFT_STICK_DIGITAL_LEFT, RIGHT_STICK_DIGITAL_LEFT])
@@ -110,7 +116,10 @@ class Controls extends FlxActionSet
 	@:justPressed("note-left") public var NOTE_LEFT_P(get, set): Bool;
 	@:justReleased("note-left") public var NOTE_LEFT_R(get, set): Bool;
 
-	#if !switch
+	#if PS5_PORT
+	// PS5 port: the D-pad and both sticks for one hand, the face buttons (□ ✕ △ ○) for the other
+	@:rawGamepad([DPAD_RIGHT, LEFT_STICK_DIGITAL_RIGHT, RIGHT_STICK_DIGITAL_RIGHT, B])
+	#elseif !switch
 	@:rawGamepad([DPAD_RIGHT, LEFT_STICK_DIGITAL_RIGHT])
 	#else
 	@:rawGamepad([DPAD_RIGHT, LEFT_STICK_DIGITAL_RIGHT, RIGHT_STICK_DIGITAL_RIGHT])
@@ -119,7 +128,10 @@ class Controls extends FlxActionSet
 	@:justPressed("note-right") public var NOTE_RIGHT_P(get, set): Bool;
 	@:justReleased("note-right") public var NOTE_RIGHT_R(get, set): Bool;
 
-	#if !switch
+	#if PS5_PORT
+	// PS5 port: the D-pad and both sticks for one hand, the face buttons (□ ✕ △ ○) for the other
+	@:rawGamepad([DPAD_DOWN, LEFT_STICK_DIGITAL_DOWN, RIGHT_STICK_DIGITAL_DOWN, A])
+	#elseif !switch
 	@:rawGamepad([DPAD_DOWN, LEFT_STICK_DIGITAL_DOWN])
 	#else
 	@:rawGamepad([DPAD_DOWN, LEFT_STICK_DIGITAL_DOWN, RIGHT_STICK_DIGITAL_DOWN])
@@ -143,12 +155,20 @@ class Controls extends FlxActionSet
 	@:pressed("pause") public var PAUSE_HOLD(get, set): Bool;
 	@:justReleased("pause") public var PAUSE_R(get, set): Bool;
 
+	#if PS5_PORT
+	@:gamepad([]) // △ is a note on the PS5 port, so it must not reset the song
+	#else
 	@:gamepad([Y])
+	#end
 	@:justPressed("reset") public var RESET(get, set): Bool;
 	@:pressed("reset") public var RESET_HOLD(get, set): Bool;
 	@:justReleased("reset") public var RESET_R(get, set): Bool;
 
+	#if PS5_PORT
+	@:gamepad([FlxGamepadInputID.BACK, RIGHT_STICK_CLICK]) // CREATE belongs to the system on a PS5: R3 does it
+	#else
 	@:gamepad([FlxGamepadInputID.BACK]) // select button
+	#end
 	@:justPressed("change-mode") public var CHANGE_MODE(get, set): Bool;
 	@:pressed("change-mode") public var CHANGE_MODE_HOLD(get, set): Bool;
 	@:justReleased("change-mode") public var CHANGE_MODE_R(get, set): Bool;
@@ -158,7 +178,11 @@ class Controls extends FlxActionSet
 	//@:pressed("cheat") public var CHEAT_HOLD(get, set): Bool;
 	//@:justReleased("cheat") public var CHEAT_R(get, set): Bool;
 
+	#if PS5_PORT
+	@:gamepad([FlxGamepadInputID.BACK, X]) // CREATE belongs to the system on a PS5: □ opens the mod menu
+	#else
 	@:gamepad([FlxGamepadInputID.BACK]) // select button
+	#end
 	@:justPressed("switchmod") public var SWITCHMOD(get, set): Bool;
 	@:pressed("switchmod") public var SWITCHMOD_HOLD(get, set): Bool;
 	@:justReleased("switchmod") public var SWITCHMOD_R(get, set): Bool;

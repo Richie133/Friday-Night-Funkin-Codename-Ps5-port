@@ -142,7 +142,7 @@ class MainState extends FlxState {
 		Framerate.fontName = Framerate.defaultFontName;
 
 		FlxG.mouse.load();
-		FlxG.mouse.useSystemCursor = true;
+		FlxG.mouse.useSystemCursor = #if ps5 false #else true #end;
 
 		if (Framerate.isLoaded)
 			Framerate.instance.visible = Framerate.memoryCounter.visible = #if SHOW_BUILD_ON_FPS Framerate.codenameBuildField.visible = #end Framerate.fpsCounter.visible = true;
@@ -205,6 +205,13 @@ class MainState extends FlxState {
 				}
 			}
 
+			#if PS5_PORT
+			// the port's notice comes first, once each time the game starts
+			if (!funkin.ps5.PS5WarningState.shownThisSession) {
+				FlxG.switchState(new funkin.ps5.PS5WarningState(startState));
+				return;
+			}
+			#end
 			FlxG.switchState(cast Type.createInstance(startState, []));
 		}
 	}

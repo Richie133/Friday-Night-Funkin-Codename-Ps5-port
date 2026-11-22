@@ -70,6 +70,9 @@ class Main extends Sprite
 	// You can pretty much ignore everything from here on - your code should go in your states.
 
 	public static function preInit() {
+		#if PS5_PORT
+		funkin.ps5.PS5.preInit();
+		#end
 		#if sys
 		funkin.backend.utils.NativeAPI.registerAsDPICompatible();
 		funkin.backend.system.CommandLineHandler.parseCommandLine(Sys.args());
@@ -145,6 +148,15 @@ class Main extends Sprite
 
 		funkin.options.PlayerSettings.init();
 		Options.load();
+		#if PS5_PORT
+		funkin.ps5.PS5Input.init();
+		funkin.ps5.options.PS5Options.saveDisplayConfig();
+		funkin.ps5.options.PS5Options.applyLive();
+		#if sys
+		var fixtures = Sys.getEnv("CNE_PS5_FIXTURES");
+		if (fixtures != null && fixtures != "") funkin.ps5.net.Net.fixtures = fixtures;
+		#end
+		#end
 
 		game.focusLostFramerate = 30;
 		FlxG.fixedTimestep = false;
@@ -159,7 +171,7 @@ class Main extends Sprite
 		FlxG.signals.postStateSwitch.add(onStateSwitchPost);
 		FlxG.signals.postUpdate.add(onUpdate);
 
-		FlxG.mouse.useSystemCursor = true;
+		FlxG.mouse.useSystemCursor = #if ps5 false #else true #end;
 		#if DARK_MODE_WINDOW
 		if(funkin.backend.utils.NativeAPI.hasVersion("Windows 10")) funkin.backend.utils.NativeAPI.redrawWindowHeader();
 		#end

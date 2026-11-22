@@ -94,8 +94,9 @@ class ModsFolderLibrary extends AssetLibrary implements IModsAssetLibrary {
 		var path = getAssetPath();
 		try {
 			var result:Array<String> = [];
-			for(e in FileSystem.readDirectory(path))
-				if (FileSystem.isDirectory('$path$e') == folders)
+			// (AppFiles: the PS5 port lists its own read-only app folder from an index)
+			for(e in #if PS5_PORT funkin.ps5.AppFiles #else FileSystem #end.readDirectory(path))
+				if (#if PS5_PORT funkin.ps5.AppFiles #else FileSystem #end.isDirectory('$path$e') == folders)
 					result.push(e);
 			return result;
 		} catch(e) {
@@ -157,9 +158,9 @@ class ModsFolderLibrary extends AssetLibrary implements IModsAssetLibrary {
 	}
 
 	function __listAppend(arr:Array<String>, folder:String) {
-		for(file in FileSystem.readDirectory('$basePath/$folder')) {
+		for(file in #if PS5_PORT funkin.ps5.AppFiles #else FileSystem #end.readDirectory('$basePath/$folder')) {
 			var fullPath = '$basePath/$folder/$file';
-			if (FileSystem.isDirectory(fullPath))
+			if (#if PS5_PORT funkin.ps5.AppFiles #else FileSystem #end.isDirectory(fullPath))
 				__listAppend(arr, '$folder$file/');
 			else
 				arr.push('$prefix$folder$file');

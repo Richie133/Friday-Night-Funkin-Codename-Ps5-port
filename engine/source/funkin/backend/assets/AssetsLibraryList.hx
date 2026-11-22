@@ -15,7 +15,7 @@ class AssetsLibraryList extends AssetLibrary {
 		return [for (l in libraries) getCleanLibrary(l)];
 	}
 
-	public var rootDirectory:String = "./assets";
+	public var rootDirectory:String = #if ps5 funkin.ps5.PS5.appRoot + "assets" #else "./assets" #end;
 	
 	// is true if any library in `libraries` contains some kind of compressed library. 
 	public var hasCompressedLibrary(get, never):Bool;

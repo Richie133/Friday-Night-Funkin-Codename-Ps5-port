@@ -15,23 +15,38 @@
 	-->
 	<haxedef name="cne"/>
 
+	<!-- ___________________________ PS5 port ___________________________ -->
+	<!-- PS5_PORT turns on the port's features (mod browser, mod menu, on-screen
+	     keyboard, warning, PS5 options). It is on for the console build (-D ps5)
+	     and for the Linux test build of the port; -D NO_PS5_PORT turns it off. -->
+	<define name="PS5_PORT" unless="NO_PS5_PORT"/>
+	<haxedef name="PS5_PORT" if="PS5_PORT"/>
+	<haxedef name="ps5" if="ps5"/>
+	<section if="ps5">
+		<!-- Statically linked: one eboot.bin, no ndlls (see ps5/README.md) -->
+		<haxedef name="static_link"/>
+		<haxedef name="toolchain" value="ps5"/>
+		<haxedef name="HXCPP_M64"/>
+		<haxedef name="NO_PRECOMPILED_HEADERS"/>
+	</section>
+
 	<!-- Comment this out to disable commit number on FPS -->
 	<define name="SHOW_BUILD_ON_FPS"/>
 
 	<!-- Comment this out to disable dark mode windows -->
-	<define name="DARK_MODE_WINDOW"/>
+	<define name="DARK_MODE_WINDOW" unless="ps5"/>
 
 	<!-- Should it checks for updates? -->
-	<define name="UPDATE_CHECKING" if="desktop" unless="hl || debug || COMPILE_EXPERIMENTAL || TEST_BUILD"/>
+	<define name="UPDATE_CHECKING" if="desktop" unless="hl || debug || COMPILE_EXPERIMENTAL || TEST_BUILD || PS5_PORT"/>
 
 	<section if="cpp">
 		<!-- Compile With Discord Rich Presence -->
 		<!-- TODO: Update Discord RPC Library & Rewrite DiscordUtil -->
 		<!-- NOTE before v1.1.0 release: PLEASE DO THIS ABOVE -->
-		<define name="DISCORD_RPC" if="desktop"/>
+		<define name="DISCORD_RPC" if="desktop" unless="PS5_PORT"/>
 
 		<!-- Compile with video support (hxvlc) -->
-		<define name="VIDEO_CUTSCENES" if="desktop || mobile"/>
+		<define name="VIDEO_CUTSCENES" if="desktop || mobile" unless="PS5_PORT"/>
 	</section>
 
 	<!-- Compile with tracy, use to catch memory leaks, generally, don't use this, inflates memory usages by 16gb~ -->
@@ -178,7 +193,9 @@
 		<assets path="assets/"    rename="assets"	exclude="*.mp3" unless="web"/>
 
 		<!-- TODO: make it copy this manually, instead of using assets node, so it doesn't manually check for fonts -->
-		<assets path='mods' rename='mods' embed='false' />
+		<assets path='mods' rename='mods' embed='false' unless="ps5"/>
+		<!-- the port's own files: CA certificates, translations, pictures -->
+		<assets path="assets-overlay/" rename="assets" if="PS5_PORT"/>
 	</section>
 
 	<!-- <assets path='art/readme.txt' rename='do NOT readme.txt' /> -->

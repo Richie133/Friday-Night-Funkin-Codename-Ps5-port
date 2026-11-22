@@ -86,6 +86,20 @@ class MainMenuState extends MusicBeatState
 		versionText.scrollFactor.set();
 		add(versionText);
 
+		#if PS5_PORT
+		if (Options.ps5MenuHints) {
+			var hints = funkin.ps5.ui.PS5UI.hints(0, FlxG.height - 40, [
+				{button: CROSS, label: "Select"},
+				{button: SQUARE, label: "Mods"},
+				{button: TRIANGLE, label: "Get mods"},
+				{button: CIRCLE, label: "Back"}
+			], 26);
+			hints.x = FlxG.width - hints.width - 16;
+			hints.scrollFactor.set();
+			add(hints);
+		}
+		#end
+
 		changeItem();
 
 		devModeWarning = new FunkinText(0, FlxG.height - 50, 1280, "You have to enable DEVELOPER MODE in the miscellaneous settings!", 24);
@@ -142,7 +156,19 @@ class MainMenuState extends MusicBeatState
 			if (controls.BACK)
 				FlxG.switchState(new TitleState());
 
-			#if MOD_SUPPORT
+			#if PS5_PORT
+			// SQUARE (or TAB) opens the mod menu, TRIANGLE (or F) the online mod browser
+			if (controls.SWITCHMOD || (FlxG.mouse.justPressed && versionText != null && FlxG.mouse.overlaps(versionText))) {
+				selectedSomethin = true;
+				FlxG.switchState(new funkin.ps5.mods.ModMenuState());
+				return;
+			}
+			if (funkin.ps5.PS5Input.justPressed(TRIANGLE)) {
+				selectedSomethin = true;
+				FlxG.switchState(new funkin.ps5.mods.ModBrowserState(null, true));
+				return;
+			}
+			#elseif MOD_SUPPORT
 			if (controls.SWITCHMOD || (FlxG.mouse.justPressed && versionText != null && FlxG.mouse.overlaps(versionText))) {
 				openSubState(new ModSwitchMenu());
 				persistentUpdate = false;

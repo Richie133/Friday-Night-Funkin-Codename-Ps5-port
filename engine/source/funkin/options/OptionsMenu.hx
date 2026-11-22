@@ -44,6 +44,13 @@ class OptionsMenu extends TreeMenu {
 			desc: 'optionsTree.miscellaneous-desc',
 			state: MiscOptions
 		}
+		#if PS5_PORT
+		,{
+			name: 'optionsTree.ps5-name',
+			desc: 'optionsTree.ps5-desc',
+			state: funkin.ps5.options.PS5Options
+		}
+		#end
 	];
 
 	var bg:FlxSprite;

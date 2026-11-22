@@ -53,6 +53,20 @@ class Options
 	public static var legacyMemoryCounter:Bool = false;
 	public static var legacyModMenuNames:Bool = false;
 
+	// PS5 port (see funkin.ps5.options.PS5Options)
+	/** 0 = 1080p, 1 = 1440p, 2 = 4K. Applied when the game starts. */
+	public static var ps5Resolution:Int = 0;
+	/** 60 or 120 Hz. Applied when the game starts. */
+	public static var ps5RefreshRate:Int = 60;
+	public static var ps5VSync:Bool = false;
+	public static var ps5TouchpadMouse:Bool = true;
+	public static var ps5TouchpadSpeed:Float = 1.0;
+	public static var ps5TouchpadCharter:Bool = true;
+	public static var ps5ShowRatedMods:Bool = false;
+	public static var ps5WarningSeen:Bool = false;
+	public static var ps5LastBrowserTab:Int = 0;
+	public static var ps5MenuHints:Bool = true;
+
 	 // DEPRECATED
 	@:dox(hide) @:doNotSave public static var hitWindow:Float = 250;
 

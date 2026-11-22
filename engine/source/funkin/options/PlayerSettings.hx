@@ -57,6 +57,13 @@ class  PlayerSettings
 			++numPlayers;
 		}
 
+		#if PS5_PORT
+		// Any connected controller drives the menus (solo) and player 1, including
+		// one that connects after start-up; a second controller still gets player 2 below.
+		solo.controls.addDefaultGamepad(flixel.input.actions.FlxActionInput.FlxInputDeviceID.ALL);
+		player1.controls.addDefaultGamepad(flixel.input.actions.FlxActionInput.FlxInputDeviceID.ALL);
+		#end
+
 		var numGamepads = FlxG.gamepads.numActiveGamepads;
 		if (numGamepads > 0)
 		{
@@ -64,7 +71,9 @@ class  PlayerSettings
 			if (gamepad == null)
 				throw 'Unexpected null gamepad. id:0';
 
+			#if !PS5_PORT
 			player1.controls.addDefaultGamepad(0);
+			#end
 		}
 
 		if (numGamepads > 1)
