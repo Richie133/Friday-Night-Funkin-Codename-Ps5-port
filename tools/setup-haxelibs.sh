@@ -5,8 +5,9 @@
 #   tools/setup-haxelibs.sh            fetch what is missing
 #   tools/setup-haxelibs.sh --update   also move existing checkouts to the pins
 #
-# Needs git, haxe and neko on PATH. Builds hxcpp's build tool, and patches hxcpp
-# and lime for the console (ps5/tools/patch-libs.py; the patches only act on -Dps5).
+# Needs git, haxe and neko on PATH. Builds hxcpp's build tool and Lime's Linux
+# ndll (for Lime's own tools), and patches hxcpp and lime for the console
+# (ps5/tools/patch-libs.py; the patches only act on -Dps5).
 set -euo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
@@ -67,5 +68,12 @@ python3 "$root/ps5/tools/patch-libs.py" "$deps/lime" "$deps/hxcpp" "$root"
 if [[ ! -f $deps/hxcpp/hxcpp.n || $deps/hxcpp/tools/hxcpp/BuildTool.hx -nt $deps/hxcpp/hxcpp.n ]]; then
   echo "==> hxcpp build tool"
   (cd "$deps/hxcpp/tools/hxcpp" && haxe compile.hxml)
+fi
+# Lime's command-line tools (lime update / display, used by the build) load the
+# Linux lime.ndll, which a git checkout of Lime does not have: build it once.
+# Needs the SDL/X11/GL development packages listed in .github/workflows/build.yml.
+if [[ ! -f $deps/lime/ndll/Linux64/lime.ndll ]]; then
+  echo "==> Lime for Linux (lime.ndll, for Lime's tools)"
+  (cd "$deps/lime" && haxelib run lime rebuild tools -nocolor && haxelib run lime rebuild linux -release -nocolor)
 fi
 echo "Haxe libraries ready in $deps"
