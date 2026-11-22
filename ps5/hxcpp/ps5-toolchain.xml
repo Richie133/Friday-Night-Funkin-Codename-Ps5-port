@@ -1,0 +1,88 @@
+<xml>
+<!--
+  hxcpp toolchain for PlayStation 5 homebrew (Codename Engine PS5 port).
+
+  Selected with -Dtoolchain=ps5 -Dps5 (the port's project.xml sets both when building
+  with -D ps5). Compiles with clang 18 for the x86_64-sie-ps5 target against the
+  ps5-payload-sdk (PS5_PAYLOAD_SDK), with the flags of the native-app boilerplate's
+  prospero-clang18 wrapper. Only static libraries are made here: ps5/tools/build.sh
+  links them, with Lime, SDL, ps5-opengl and the console glue, into eboot.bin.
+
+  Copied into hxcpp's toolchain/ folder by ps5/tools/setup.sh.
+-->
+
+<!-- environment variables are hxcpp defines: PS5_PAYLOAD_SDK and PS5_CLANG come from ps5/tools/env.sh -->
+<error value="Set PS5_PAYLOAD_SDK to the ps5-payload-sdk folder (ps5/tools/setup.sh does)" unless="PS5_PAYLOAD_SDK" />
+<set name="PS5_CLANG" value="clang-18" unless="PS5_CLANG" />
+
+<set name="HXCPP_M64" value="1" />
+<set name="BINDIR" value="PS5" />
+<set name="LIBEXT" value=".a" />
+<set name="LIBPREFIX" value="lib" />
+<set name="NO_PRECOMPILED_HEADERS" value="1" />
+<set name="HXCPP_STRIP" value="llvm-strip-18" />
+<set name="nostrip" value="1" />
+<set name="HXCPP_AR" value="llvm-ar-18" />
+<set name="HXCPP_RANLIB" value="llvm-ranlib-18" />
+<set name="STD_MODULE_LINK" value="static_link" />
+
+<include name="toolchain/gcc-toolchain.xml"/>
+
+<compiler id="ps5" exe="${PS5_CLANG}">
+  <exe name="ccache" if="HXCPP_PS5_CCACHE" />
+  <flag value="${PS5_CLANG}" if="HXCPP_PS5_CCACHE" />
+  <flag value="-c"/>
+  <flag value="-target"/>
+  <flag value="x86_64-sie-ps5"/>
+  <flag value="-fvisibility-nodllstorageclass=default"/>
+  <flag value="-isysroot"/>
+  <flag value="${PS5_PAYLOAD_SDK}"/>
+  <!-- libc++'s headers must come before libc's (its math.h wraps libc's macros) -->
+  <cppflag value="-isystem"/>
+  <cppflag value="${PS5_PAYLOAD_SDK}/target/include/c++/v1"/>
+  <cppflag value="-isystem"/>
+  <cppflag value="${PS5_PAYLOAD_SDK}/target/include"/>
+  <cflag value="-isystem"/>
+  <cflag value="${PS5_PAYLOAD_SDK}/target/include"/>
+  <flag value="-fno-stack-protector"/>
+  <flag value="-fno-plt"/>
+  <flag value="-femulated-tls"/>
+  <flag value="-fPIC"/>
+  <flag value="-ffunction-sections"/>
+  <flag value="-fdata-sections"/>
+  <flag value="-fvisibility=hidden"/>
+  <cppflag value="-frtti"/>
+  <cppflag value="-fexceptions"/>
+  <cppflag value="-Wno-invalid-offsetof" />
+  <flag value="-Wno-overflow" />
+  <flag value="-Wno-unused-command-line-argument" />
+  <flag value="-Wno-deprecated-declarations" />
+  <flag value="-Wno-incompatible-function-pointer-types" />
+  <flag value="-Wno-int-conversion" />
+  <flag value="-O2" unless="debug"/>
+  <flag value="-g" if="HXCPP_DEBUG_LINK"/>
+  <flag value="-D__PS5__"/>
+  <flag value="-DHX_PS5"/>
+  <flag value="-DHXCPP_M64"/>
+  <flag value="-DHXCPP_MULTI_THREADED" if="HXCPP_MULTI_THREADED"/>
+  <include name="toolchain/common-defines.xml" />
+  <flag value="-I${HXCPP}/include"/>
+  <objdir value="obj/ps5${OBJEXT}/"/>
+  <outflag value="-o"/>
+  <ext value=".o"/>
+</compiler>
+
+<!-- No executables or shared libraries here: the final link is ps5/tools/build.sh -->
+<linker id="exe" exe="${HXCPP_AR}">
+  <outflag value="-cr "/>
+  <ext value=".a"/>
+  <recreate value="1" />
+</linker>
+
+<linker id="dll" exe="${HXCPP_AR}">
+  <outflag value="-cr "/>
+  <ext value=".a"/>
+  <recreate value="1" />
+</linker>
+
+</xml>

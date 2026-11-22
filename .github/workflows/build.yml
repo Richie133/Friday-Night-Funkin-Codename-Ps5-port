@@ -1,0 +1,123 @@
+# Builds the PS5 app on every push to main and on pull requests, and puts
+# PPSA52210.zip (what homebrew installers take) on releases:
+#   - Push a tag such as v0.1.0-beta: the app is built and a release for that tag
+#     is published with the zip; a tag with alpha, beta or rc in it becomes a
+#     pre-release. The zip's sha256 goes under the notes.
+#   - Actions > Build > Run workflow, with "Release tag" filled in: builds it and
+#     attaches the zip to that release, creating it if it does not exist.
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, e.g. v0.1.1-beta (created if new; empty only builds)
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install the toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends make ninja-build ccache python3 unzip zip curl wget tar \
+            pkg-config clang-18 lld-18 llvm-18 libclang-rt-18-dev libc++-18-dev libc++abi-18-dev zlib1g-dev
+          for tool in clang clang++ ld.lld llvm-ar llvm-ranlib; do
+            sudo ln -sf "/usr/bin/$tool-18" "/usr/local/bin/$tool"
+          done
+
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.7
+
+      - name: Cache downloads and compiled objects
+        uses: actions/cache@v4
+        with:
+          path: |
+            .deps/native
+            .deps/ps5-opengl
+            .deps/pacbrew/*.tar.gz
+            .deps/haxelib
+            .deps/hxcpp-cache
+          key: deps-${{ hashFiles('tools/setup-haxelibs.sh', 'tools/setup-native-dependencies.sh', 'tools/fetch-opengl-sdk.sh', 'tools/setup-pacbrew-dependencies.sh') }}-${{ github.sha }}
+          restore-keys: deps-${{ hashFiles('tools/setup-haxelibs.sh', 'tools/setup-native-dependencies.sh', 'tools/fetch-opengl-sdk.sh', 'tools/setup-pacbrew-dependencies.sh') }}-
+
+      - name: Codename Engine's assets
+        run: |
+          commit=$(cat engine/UPSTREAM_COMMIT)
+          if [[ ! -d .deps/codename/assets ]]; then
+            git init -q .deps/codename
+            git -C .deps/codename remote add origin https://github.com/CodenameCrew/CodenameEngine
+            git -C .deps/codename fetch -q --depth 1 origin "$commit"
+            git -C .deps/codename checkout -q FETCH_HEAD
+          fi
+
+      - name: Haxe libraries
+        run: tools/setup-haxelibs.sh
+
+      - name: Decide what to publish
+        id: target
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          mode=none; tag=
+          if [[ $GITHUB_EVENT_NAME == push && $GITHUB_REF == refs/tags/* ]]; then
+            mode=attach; tag=$GITHUB_REF_NAME
+          elif [[ $GITHUB_EVENT_NAME == workflow_dispatch && -n $INPUT_TAG ]]; then
+            mode=attach; tag=$INPUT_TAG
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        env:
+          HXCPP_COMPILE_CACHE: ${{ github.workspace }}/.deps/hxcpp-cache
+          HAXELIB_SKIP_SETUP: 1
+        run: |
+          mkdir -p "$HXCPP_COMPILE_CACHE"
+          ps5/tools/build-ps5.sh
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: PPSA52210
+          path: dist/PPSA52210.zip
+
+      - name: Publish
+        if: steps.target.outputs.mode != 'none'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.target.outputs.tag }}
+        run: |
+          sha=$(sha256sum dist/PPSA52210.zip | cut -d ' ' -f 1)
+          line="\`PPSA52210.zip\` sha256: \`$sha\`"
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            pre=()
+            shopt -s nocasematch
+            [[ $TAG == *alpha* || $TAG == *beta* || $TAG == *rc* ]] && pre=(--prerelease)
+            { cat .github/release-notes.md; printf '\n%s\n' "$line"; } > notes.md
+            gh release create "$TAG" dist/PPSA52210.zip --repo "$GITHUB_REPOSITORY" "${pre[@]}" \
+              --target "$GITHUB_SHA" --title "Codename Engine PS5 port ${TAG#v}" --notes-file notes.md
+          else
+            gh release upload "$TAG" dist/PPSA52210.zip --clobber --repo "$GITHUB_REPOSITORY"
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > body.md
+            python3 - "$line" <<'PY'
+          import sys
+          kept = [l for l in open("body.md").read().splitlines() if not l.startswith("`PPSA52210.zip` sha256:")]
+          text = "\n".join(kept).rstrip()
+          open("notes.md", "w").write((text + "\n\n" if text else "") + sys.argv[1] + "\n")
+          PY
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+          fi
+          echo "$line"
