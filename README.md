@@ -12,11 +12,13 @@ homebrew app (`PPSA52210`).
 > [Friday Night Funkin' on itch.io](https://ninja-muffin24.itch.io/funkin).
 > The game shows this notice when it starts.
 
-**Status: beta, not yet tested on a console.** Everything except the console-only
-layer (SDL drivers, linking, packaging) has been run in the Linux build of the port,
-which is the same game code. Expect problems on hardware; please report them in
+**Status: beta.** The game code has been run in the Linux build of the port; the
+console layer (SDL drivers, linking, packaging) is being tested on hardware now.
+0.1.0 crashed at start-up on a PS5; 0.1.1 fixes that cause. Please report problems in
 [Issues](https://github.com/Richie133/Friday-Night-Funkin-Codename-Ps5-port/issues)
-with `/data/codename-ps5/logs/codename.log`.
+with `/data/codename-ps5/logs/codename.log`, or a photo of the crash screen: each
+release has `PPSA52210-symbols.txt.gz`, the function addresses of its `eboot.bin`
+(the console loads it at `0x400000`; subtract that from the addresses it shows).
 
 ## What it adds to Codename Engine
 

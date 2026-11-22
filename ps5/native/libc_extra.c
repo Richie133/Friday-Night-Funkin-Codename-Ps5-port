@@ -8,7 +8,10 @@
  * plain counterpart does, ignoring the locale argument. Also: a few POSIX calls
  * that libraries reference but the console lacks (catalogs, utimensat, times,
  * getpwuid, gethostbyaddr_r, cfmakeraw), thread_local destructors for libc++abi,
- * and zstd's optional tracing hooks.
+ * zstd's optional tracing hooks, and the few file calls (openat, statfs...) the
+ * SDK puts in libkernel_sys, a kernel library native titles do not get: importing
+ * them would leave them at address 0, so they are rebuilt here from the ones
+ * libkernel has.
  */
 #define _XLOCALE_INLINE_ONLY_DECLARATIONS
 #include <errno.h>
@@ -26,11 +29,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <sys/time.h>
 #include <sys/times.h>
 #include <termios.h>
 #include <time.h>
+#include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
 #include <xlocale.h>
@@ -392,4 +398,94 @@ void ZSTD_trace_decompress_end(unsigned long long context, const void *trace)
 {
     (void)context;
     (void)trace;
+}
+
+/* ---- libkernel_sys's file calls, from libkernel's (paths relative to the
+ * current directory only: nothing here uses directory descriptors) */
+
+static int at_cwd(int dirfd, const char *path)
+{
+    if (dirfd == AT_FDCWD || (path && path[0] == '/')) return 1;
+    errno = ENOSYS;
+    return 0;
+}
+
+int openat(int dirfd, const char *path, int flags, ...)
+{
+    int mode = 0;
+    if (flags & O_CREAT) {
+        va_list args;
+        va_start(args, flags);
+        mode = va_arg(args, int);
+        va_end(args);
+    }
+    return at_cwd(dirfd, path) ? open(path, flags, mode) : -1;
+}
+
+int unlinkat(int dirfd, const char *path, int flag)
+{
+    if (!at_cwd(dirfd, path)) return -1;
+    return (flag & AT_REMOVEDIR) ? rmdir(path) : unlink(path);
+}
+
+int fchmodat(int dirfd, const char *path, mode_t mode, int flag)
+{
+    (void)flag;
+    return at_cwd(dirfd, path) ? chmod(path, mode) : -1;
+}
+
+ssize_t readlink(const char *path, char *buffer, size_t size)
+{
+    (void)path;
+    (void)buffer;
+    (void)size;
+    errno = EINVAL; /* no symbolic links on the console's data partition */
+    return -1;
+}
+
+int symlink(const char *target, const char *path)
+{
+    (void)target;
+    (void)path;
+    errno = ENOSYS;
+    return -1;
+}
+
+int link(const char *target, const char *path)
+{
+    (void)target;
+    (void)path;
+    errno = ENOSYS;
+    return -1;
+}
+
+long pathconf(const char *path, int name)
+{
+    (void)path;
+    switch (name) {
+    case _PC_NAME_MAX: return 255;
+    case _PC_PATH_MAX: return 1024;
+    default: errno = EINVAL; return -1;
+    }
+}
+
+pid_t fork(void)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+int statfs(const char *path, struct statfs *out)
+{
+    struct statvfs info;
+    if (statvfs(path, &info) != 0) return -1;
+    memset(out, 0, sizeof(*out));
+    out->f_bsize = info.f_frsize;
+    out->f_iosize = info.f_bsize;
+    out->f_blocks = info.f_blocks;
+    out->f_bfree = info.f_bfree;
+    out->f_bavail = info.f_bavail;
+    out->f_files = info.f_files;
+    out->f_ffree = info.f_ffree;
+    return 0;
 }

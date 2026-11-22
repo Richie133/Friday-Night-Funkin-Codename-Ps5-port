@@ -108,12 +108,17 @@ typedef struct PS5_KeyboardState {
     uint64_t junk3[4];
 } PS5_KeyboardState;
 
-int sceKeyboardInit(void);
-int sceKeyboardOpen(int user_id, int type, int index, void *param);
-int sceKeyboardReadState(int handle, PS5_KeyboardState *state);
+/* libSceKeyboard is not loaded for a native title: importing it leaves its functions
+ * at address 0 (the 0.1.0-beta crash at start-up). It is loaded at run time instead,
+ * like libSceMouse, and the keyboard is simply missing when that fails. */
+typedef int (*PFN_sceKeyboardInit)(void);
+typedef int (*PFN_sceKeyboardOpen)(int user_id, int type, int index, void *param);
+typedef int (*PFN_sceKeyboardReadState)(int handle, PS5_KeyboardState *state);
+static PFN_sceKeyboardReadState p_sceKeyboardReadState = NULL;
 
-int sceKernelLoadStartModule(const char *path, size_t argc, const void *argv, uint32_t flags, void *opt, int *result);
-int sceKernelDlsym(int handle, const char *symbol, void **address);
+/* ps5/native/codename_ps5.c: a system library by name, and a function in it */
+extern int cne_ps5_load_module(const char *name);
+extern void *cne_ps5_module_symbol(int handle, const char *symbol);
 
 #define PS5_PAD_BUTTON_L3        0x0002
 #define PS5_PAD_BUTTON_R3        0x0004
@@ -227,6 +232,7 @@ static bool PS5_VideoInit(SDL_VideoDevice *_this)
         v->display = EGL_NO_DISPLAY;
         return egl_error("eglInitialize");
     }
+    fprintf(stderr, "[codename-ps5] video: EGL up, %dx%d at %d Hz\n", g_display_w, g_display_h, g_display_hz);
 
     SDL_zero(mode);
     mode.format = SDL_PIXELFORMAT_ABGR8888;
@@ -562,25 +568,30 @@ static void PS5_InitInput(void)
     g_pointer_x = g_display_w / 2.0f;
     g_pointer_y = g_display_h / 2.0f;
 
-    sceKeyboardInit(); /* already initialised by the system on some firmware: ignore */
     {
-        char junk[16] = { 0 };
-        g_keyboard = sceKeyboardOpen(user, 0, 0, junk);
-        if (g_keyboard < 0) {
-            g_keyboard = -1;
+        int module = cne_ps5_load_module("libSceKeyboard");
+        PFN_sceKeyboardInit p_init = (PFN_sceKeyboardInit)cne_ps5_module_symbol(module, "sceKeyboardInit");
+        PFN_sceKeyboardOpen p_open = (PFN_sceKeyboardOpen)cne_ps5_module_symbol(module, "sceKeyboardOpen");
+        p_sceKeyboardReadState = (PFN_sceKeyboardReadState)cne_ps5_module_symbol(module, "sceKeyboardReadState");
+        if (p_init && p_open && p_sceKeyboardReadState) {
+            char junk[16] = { 0 };
+            p_init(); /* already initialised by the system on some firmware: ignore */
+            g_keyboard = p_open(user, 0, 0, junk);
+            if (g_keyboard < 0) {
+                g_keyboard = -1;
+            }
         }
+        fprintf(stderr, "[codename-ps5] keyboard: module %d, handle %d\n", module, g_keyboard);
     }
     SDL_zero(g_prev_keys);
 
     /* libSceMouse is not part of every firmware's game libraries: load it if it is there */
     {
-        int module = sceKernelLoadStartModule("/system/common/lib/libSceMouse.sprx", 0, NULL, 0, NULL, NULL);
+        int module = cne_ps5_load_module("libSceMouse");
         if (module >= 0) {
-            PFN_sceMouseInit p_init = NULL;
-            PFN_sceMouseOpen p_open = NULL;
-            sceKernelDlsym(module, "sceMouseInit", (void **)&p_init);
-            sceKernelDlsym(module, "sceMouseOpen", (void **)&p_open);
-            sceKernelDlsym(module, "sceMouseRead", (void **)&p_sceMouseRead);
+            PFN_sceMouseInit p_init = (PFN_sceMouseInit)cne_ps5_module_symbol(module, "sceMouseInit");
+            PFN_sceMouseOpen p_open = (PFN_sceMouseOpen)cne_ps5_module_symbol(module, "sceMouseOpen");
+            p_sceMouseRead = (PFN_sceMouseRead)cne_ps5_module_symbol(module, "sceMouseRead");
             if (p_init && p_open && p_sceMouseRead) {
                 char param[8] = { 0 };
                 p_init();
@@ -614,7 +625,7 @@ static void pump_keyboard(Uint64 ts)
     PS5_KeyboardState cur;
     uint32_t diff;
 
-    if (g_keyboard < 0 || sceKeyboardReadState(g_keyboard, &cur) != 0 || !cur.available) {
+    if (g_keyboard < 0 || !p_sceKeyboardReadState || p_sceKeyboardReadState(g_keyboard, &cur) != 0 || !cur.available) {
         return;
     }
     diff = g_prev_keys.modifiers ^ cur.modifiers;

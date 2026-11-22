@@ -1,6 +1,6 @@
 An unofficial port of Codename Engine (Friday Night Funkin') to jailbroken PS5 consoles, made with AI help. It is not made or supported by the Codename Engine team, the Funkin' Crew or Sony. Support them by playing on PC: [codename-engine.com](https://codename-engine.com).
 
-**Beta, not yet tested on a console.** Please report problems in Issues with `/data/codename-ps5/logs/codename.log`.
+**Beta.** 0.1.1 fixes the crash right at start-up that 0.1.0 had on the console (the USB keyboard library is now loaded at run time instead of imported). Please report problems in Issues with `/data/codename-ps5/logs/codename.log`, or a photo of the crash screen: `PPSA52210-symbols.txt.gz` turns its addresses into function names.
 
 Install `PPSA52210.zip` with your homebrew app installer.
 

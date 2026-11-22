@@ -99,7 +99,9 @@ jobs:
       - uses: actions/upload-artifact@v6
         with:
           name: PPSA52210
-          path: dist/PPSA52210.zip
+          path: |
+            dist/PPSA52210.zip
+            dist/PPSA52210-symbols.txt.gz
 
       - name: Publish
         if: steps.target.outputs.mode != 'none'
@@ -114,10 +116,10 @@ jobs:
             shopt -s nocasematch
             [[ $TAG == *alpha* || $TAG == *beta* || $TAG == *rc* ]] && pre=(--prerelease)
             { cat .github/release-notes.md; printf '\n%s\n' "$line"; } > notes.md
-            gh release create "$TAG" dist/PPSA52210.zip --repo "$GITHUB_REPOSITORY" "${pre[@]}" \
+            gh release create "$TAG" dist/PPSA52210.zip dist/PPSA52210-symbols.txt.gz --repo "$GITHUB_REPOSITORY" "${pre[@]}" \
               --target "$GITHUB_SHA" --title "Codename Engine PS5 port ${TAG#v}" --notes-file notes.md
           else
-            gh release upload "$TAG" dist/PPSA52210.zip --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" dist/PPSA52210.zip dist/PPSA52210-symbols.txt.gz --clobber --repo "$GITHUB_REPOSITORY"
             gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > body.md
             python3 - "$line" <<'PY'
           import sys

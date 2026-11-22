@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mount.h>
+#include <sys/statvfs.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -116,10 +117,70 @@ void cne_ps5_notify(const char *text)
 
 double cne_ps5_free_space(const char *path)
 {
-    struct statfs info;
-    if (statfs(path, &info) != 0)
+    /* statvfs: statfs itself lives in a kernel library native titles do not get */
+    struct statvfs info;
+    if (statvfs(path, &info) != 0)
         return -1;
-    return (double)info.f_bavail * (double)info.f_bsize;
+    return (double)info.f_bavail * (double)info.f_frsize;
+}
+
+/* ------------------------------------------------------------------------- */
+/* System libraries loaded at run time                                       */
+
+/* Only some system libraries are loaded for a native title; importing a function
+ * from another one leaves it at address 0. Those (the keyboard and mouse
+ * libraries) are found or loaded here, and their functions looked up by name.
+ * The approach follows KamTape PS5 and Ruffle Flash PS5. */
+extern int sceKernelGetModuleList(int *handles, size_t count, size_t *actual);
+extern int sceKernelGetModuleInfo(int handle, void *info);
+extern int sceKernelDlsym(int handle, const char *symbol, void **address);
+extern int sceKernelLoadStartModule(const char *path, size_t argc, const void *argv, uint32_t flags, void *opt, int *result);
+
+static int find_module(const char *name)
+{
+    static int handles[512];
+    size_t count = 0;
+    if (sceKernelGetModuleList(handles, 512, &count) != 0)
+        return -1;
+    /* SceKernelModuleInfo's size differs between systems: try a few */
+    static const uint64_t sizes[] = {0x160, 0x1a8, 0x1b0, 0x158, 0x200};
+    for (size_t i = 0; i < count && i < 512; ++i) {
+        for (size_t s = 0; s < sizeof(sizes) / sizeof(sizes[0]); ++s) {
+            struct {
+                uint64_t size;
+                char name[256];
+                uint8_t rest[0x400];
+            } info;
+            memset(&info, 0, sizeof(info));
+            info.size = sizes[s];
+            if (sceKernelGetModuleInfo(handles[i], &info) != 0)
+                continue;
+            if (strstr(info.name, name))
+                return handles[i];
+            break;
+        }
+    }
+    return -1;
+}
+
+int cne_ps5_load_module(const char *name)
+{
+    int handle = find_module(name);
+    if (handle < 0) {
+        char path[128];
+        snprintf(path, sizeof(path), "/system/common/lib/%s.sprx", name);
+        handle = sceKernelLoadStartModule(path, 0, NULL, 0, NULL, NULL);
+    }
+    fprintf(stderr, "[codename-ps5] module %s: %d\n", name, handle);
+    return handle < 0 ? -1 : handle;
+}
+
+void *cne_ps5_module_symbol(int handle, const char *symbol)
+{
+    void *address = NULL;
+    if (handle < 0 || sceKernelDlsym(handle, symbol, &address) != 0)
+        return NULL;
+    return address;
 }
 
 /* ------------------------------------------------------------------------- */

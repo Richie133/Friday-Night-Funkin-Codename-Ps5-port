@@ -190,6 +190,13 @@ cp -a "$linux_bin/assets" "$app/assets"
 (cd "$app" && find . -type f ! -path './sce_sys/*' ! -path './sce_module/*' ! -name eboot.bin -printf '%P\n' | LC_ALL=C sort > ps5-files.txt)
 "$tool" self --inspect --file "$app/eboot.bin"
 
+# function addresses, for reading the console's crash reports: the console loads
+# eboot.bin at 0x400000, so subtract that from an address it shows
+{
+  printf '# Functions of %s/eboot.bin (address in the file; on the console add 0x400000)\n' "$title_id"
+  llvm-nm-18 -C --numeric-sort --defined-only "$build/llvm-pie.elf" | awk '$2 ~ /^[tTwW]$/'
+} | gzip -9 > "$dist/$title_id-symbols.txt.gz"
+
 (cd "$dist" && rm -f "$title_id.zip" && python3 -m zipfile -c "$title_id.zip" "$title_id")
 python3 "$root/tools/zip-open-modes.py" "$dist/$title_id.zip"
-printf '\nBuild complete.\nApp folder: %s\nZip: %s\n' "$app" "$dist/$title_id.zip"
+printf '\nBuild complete.\nApp folder: %s\nZip: %s\nSymbols: %s\n' "$app" "$dist/$title_id.zip" "$dist/$title_id-symbols.txt.gz"
