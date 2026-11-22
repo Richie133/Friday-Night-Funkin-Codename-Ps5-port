@@ -54,7 +54,7 @@ class PS5GraphicsOptions extends TreeMenuScreen {
 		super('PS5Options.graphics-name', 'PS5Options.graphics-desc', 'PS5Options.Graphics.');
 		var mode = PS5Native.displayMode();
 
-		add(new ArrayOption(getNameID('resolution'), getDescID('resolution'), [0, 1, 2], ["1080p (1920x1080)", "1440p (2560x1440)", "4K (3840x2160)"],
+		add(new ArrayOption(getNameID('resolution'), getDescID('resolution'), [0, 1, 2], ["1080p", "1440p", "4K"],
 			'ps5Resolution', _ -> PS5Options.saveDisplayConfig()));
 		add(new ArrayOption(getNameID('refresh'), getDescID('refresh'), [60, 120], ["60 Hz", "120 Hz"],
 			'ps5RefreshRate', _ -> PS5Options.saveDisplayConfig()));

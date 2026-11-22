@@ -107,6 +107,7 @@ class VSliceConverter {
 					var diffs = [];
 					for (c in charts) {
 						c.chart.meta = meta;
+						c.chart.stage = stageFor(root, c.chart.stage);
 						var saved = Chart.filterChartForSaving(c.chart, false, true, true);
 						File.saveContent(Path.join([chartDir, '${c.diffName}.json']), Json.stringify(saved));
 						diffs.push(c.diffName);
@@ -266,6 +267,23 @@ class VSliceConverter {
 		}
 		#end
 		return count;
+	}
+
+	/** The base game's V-Slice stage IDs, as Codename's stage names (unless the mod has its own). */
+	static var BASE_STAGES = [
+		"mainStage" => "stage", "mainStageErect" => "stage", "spookyMansion" => "spooky", "spookyMansionErect" => "spooky",
+		"phillyTrain" => "philly", "phillyTrainErect" => "philly", "phillyStreets" => "philly", "phillyBlazin" => "philly",
+		"limoRide" => "limo", "limoRideErect" => "limo", "mallXmas" => "mall", "mallXmasErect" => "mall", "mallEvil" => "mall-evil",
+		"school" => "school", "schoolEvil" => "school-evil", "tankmanBattlefield" => "tank", "tankmanBattlefieldErect" => "tank"
+	];
+
+	static function stageFor(root:String, stage:String):String {
+		if (stage == null || stage == "") return "stage";
+		#if sys
+		if (FileSystem.exists(Path.join([root, "data/stages", '$stage.json'])) || FileSystem.exists(Path.join([root, "data/stages", '$stage.xml'])))
+			return stage;
+		#end
+		return BASE_STAGES.exists(stage) ? BASE_STAGES.get(stage) : stage;
 	}
 
 	public static function stageXml(name:String, s:Dynamic):String {
