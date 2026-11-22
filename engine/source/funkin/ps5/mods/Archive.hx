@@ -18,6 +18,12 @@ import sys.io.File;
 <target id="haxe">
 	<lib name="-larchive" if="linux" unless="ps5"/>
 </target>
+<files id="haxe">
+	<!-- the console build: libarchive from PacBrew (ps5/tools/build-ps5.sh), linked with the app;
+	     the generated code\'s warnings are left out of the log -->
+	<compilerflag value="-I$${PS5_ARCHIVE_INCLUDE}" if="PS5_ARCHIVE_INCLUDE"/>
+	<compilerflag value="-w" if="ps5"/>
+</files>
 ')
 @:cppFileCode('
 #include <archive.h>

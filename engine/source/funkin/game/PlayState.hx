@@ -800,6 +800,11 @@ class PlayState extends MusicBeatState
 			}
 		}
 
+		#if PS5_PORT
+		// Psych Engine's built-in events, for charts from converted Psych mods
+		funkin.ps5.psych.PsychEvents.attach(this);
+		#end
+
 		add(comboGroup);
 		#end
 
