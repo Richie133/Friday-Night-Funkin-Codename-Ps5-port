@@ -15,7 +15,7 @@ import sys.io.File;
  */
 class PS5 {
 	/** The port's own version, shown in the warning and the options. */
-	public static inline var VERSION:String = "0.1.3-beta";
+	public static inline var VERSION:String = "0.1.4-beta";
 	/** Title ID of the native PS5 app. */
 	public static inline var TITLE_ID:String = "PPSA52210";
 	/** Where the port's source lives. */

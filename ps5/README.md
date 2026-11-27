@@ -41,6 +41,9 @@ answers listings from it; HTTPS uses the certificates in `assets/ps5/cacert.pem`
   `/data/codename-ps5/logs/crash.txt`. Addresses there are `eboot+0x…` offsets into
   `eboot.bin`, the numbering of each release's `PPSA52210-symbols.txt.gz`; the console's
   own error screen shows them plus `0x400000`.
+- Dear ImGui (Codename's debug console): multi-viewport stays off (one window), and its
+  checks (`IM_ASSERT`) are logged instead of ending the game (`patch-libs.py`,
+  `CNE_PS5_IMGUI_SOFT_ASSERT` in `hxcpp/ps5-toolchain.xml`, `native/crash_report.c`).
 - Libraries that `dlopen()` a system library (as Dear ImGui's GL loader did with libGL)
   find nothing on the console: give them the function directly (`patch-libs.py`).
 - `display.cfg` is written by Options > PS5 > Picture and read before the window opens,

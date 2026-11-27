@@ -167,7 +167,7 @@ class Options
 	/**
 	 * IMGUI
 	 */
-	public static var imguiMultiViewport:Bool = #if linux false #else true #end;
+	public static var imguiMultiViewport:Bool = #if (linux || ps5) false #else true #end;
 	#end
 
 	/**
@@ -308,7 +308,12 @@ class Options
 		FlxG.sound.defaultMusicGroup.volume = volumeMusic;
 		FlxG.autoPause = autoPause;
 
-		#if IMGUI_ENABLED
+		#if (IMGUI_ENABLED && ps5)
+		// PS5_PORT: one window only. ImGui turns multi-viewport off itself on its first
+		// frame, and turning it back on afterwards ends the game ("Please set
+		// ViewportsEnable before the first call to NewFrame()!")
+		ImGuiIO.configFlags = ImGuiIO.configFlags & ~ImGuiConfigFlags.ViewportsEnable;
+		#elseif IMGUI_ENABLED
 		if (imguiMultiViewport) {
 			ImGuiIO.configFlags |= ImGuiConfigFlags.ViewportsEnable;
 		} else {

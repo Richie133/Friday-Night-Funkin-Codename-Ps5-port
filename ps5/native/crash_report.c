@@ -185,6 +185,34 @@ void cne_ps5_report_fatal(const char *what)
     publish(notice);
 }
 
+/*
+ * Dear ImGui's checks (IM_ASSERT, see ps5-toolchain.xml): ImGui only draws Codename's
+ * debug console, so a failed check is written to the log, once per place, and ImGui
+ * carries on as it does in a release build. If it then really breaks, the signal
+ * handler below reports that.
+ */
+void cne_ps5_imgui_assert(const char *expression, const char *file, int line)
+{
+    static struct { const char *file; int line; } seen[64];
+    static int seen_count;
+    for (int i = 0; i < seen_count; ++i)
+        if (seen[i].line == line && seen[i].file == file)
+            return;
+    if (seen_count < (int)(sizeof(seen) / sizeof(seen[0]))) {
+        seen[seen_count].file = file;
+        seen[seen_count].line = line;
+        ++seen_count;
+    }
+    uintptr_t frames[4];
+    const uintptr_t here = (uintptr_t)__builtin_frame_address(0);
+    const int count = walk_stack(here, here, frames, 4);
+    fprintf(stderr, "[codename-ps5] ImGui check failed, carrying on: %s (%s:%d)", expression ? expression : "?",
+            base_name(file), line);
+    for (int i = 0; i < count; ++i)
+        fprintf(stderr, i ? " %#lx" : " at eboot+%#lx", (unsigned long)(frames[i] - (uintptr_t)__cne_image_base));
+    fputc('\n', stderr);
+}
+
 static const char *signal_name(int number)
 {
     switch (number) {

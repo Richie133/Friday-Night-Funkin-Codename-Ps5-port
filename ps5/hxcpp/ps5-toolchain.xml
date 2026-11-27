@@ -51,6 +51,9 @@
   <flag value="-ffunction-sections"/>
   <flag value="-fdata-sections"/>
   <flag value="-fvisibility=hidden"/>
+  <!-- Dear ImGui's failed checks are logged instead of ending the game (imconfig.h,
+       patched by patch-libs.py; the function is in ps5/native/crash_report.c) -->
+  <cppflag value="-DCNE_PS5_IMGUI_SOFT_ASSERT=1"/>
   <cppflag value="-frtti"/>
   <cppflag value="-fexceptions"/>
   <cppflag value="-Wno-invalid-offsetof" />

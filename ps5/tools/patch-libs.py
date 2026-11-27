@@ -35,6 +35,16 @@ def edit(path, old, new, marker=None):
     return True
 
 
+def append_once(path, marker, text):
+    with open(path, encoding="utf-8") as f:
+        current = f.read()
+    if marker in current:
+        return False
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(text)
+    return True
+
+
 def main():
     if len(sys.argv) != 4:
         sys.exit(__doc__)
@@ -116,6 +126,27 @@ def main():
             "#define IMGL3W_IMPL // PS5 port: on __PROSPERO__ the loader asks EGL for GL functions\n"
             "#define IMGUI_IMPL_OPENGL_LOADER_IMGL3W\n"):
         changed.append("lime ImGui GL backend")
+    # lime: the console has one window, so no ImGui multi-viewport (ImGui switches it
+    # off on frame 0 anyway, and it must not be switched back on: see Options.hx)
+    if edit(os.path.join(lime, "project", "src", "backend", "sdl", "SDLWindow.cpp"),
+            "\t\t\t\tio.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;\n",
+            "\t\t\t\t#ifndef __PROSPERO__ // PS5 port: one window only\n"
+            "\t\t\t\tio.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;\n"
+            "\t\t\t\t#endif\n"):
+        changed.append("lime SDLWindow")
+    # lime: on the console a failed ImGui check is logged and ImGui carries on, as in a
+    # release build, so the debug console cannot end the game. ps5-toolchain.xml
+    # defines CNE_PS5_IMGUI_SOFT_ASSERT (a compiler flag, so that hxcpp's compile
+    # cache, which does not look at headers, rebuilds everything that includes ImGui).
+    if append_once(os.path.join(lime, "project", "lib", "imgui", "imconfig.h"),
+                   "CNE_PS5_IMGUI_SOFT_ASSERT",
+                   "\n// PS5 (Codename Engine port): log a failed check and carry on (crash_report.c)\n"
+                   "#if defined(CNE_PS5_IMGUI_SOFT_ASSERT)\n"
+                   "#ifdef __cplusplus\nextern \"C\"\n#endif\n"
+                   "void cne_ps5_imgui_assert(const char *expression, const char *file, int line);\n"
+                   "#define IM_ASSERT(_EXPR) ((_EXPR) ? (void)0 : cne_ps5_imgui_assert(#_EXPR, __FILE__, __LINE__))\n"
+                   "#endif\n"):
+        changed.append("lime ImGui config")
     # ... and say so in the log if the ImGui renderer backend still cannot start
     if edit(os.path.join(lime, "project", "src", "backend", "sdl", "SDLWindow.cpp"),
             '\t\t\t\tImGui_ImplOpenGL3_Init("#version 150");',
