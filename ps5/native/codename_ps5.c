@@ -568,8 +568,8 @@ int pclose(FILE *stream)
     return -1;
 }
 
-/* Reentrant time functions the console's libc does not export (Lua's os.date,
- * hxcpp's Date). Weak, in case a library brings its own. */
+/* Reentrant time functions the console's libc does not export (hxcpp's Date and
+ * the C libraries). Weak, in case a library brings its own. */
 static pthread_mutex_t time_lock = PTHREAD_MUTEX_INITIALIZER;
 
 __attribute__((weak)) struct tm *localtime_r(const time_t *timer, struct tm *result)
@@ -604,7 +604,7 @@ __attribute__((weak)) time_t timegm(struct tm *tm)
     return (time_t)(((days * 24 + tm->tm_hour) * 60 + tm->tm_min) * 60 + tm->tm_sec);
 }
 
-/* No temporary-file service: Lua's io.tmpfile and os.tmpname use the cache folder */
+/* No temporary-file service: tmpfile and tmpnam use the cache folder */
 __attribute__((weak)) FILE *tmpfile(void)
 {
     char name[] = "/data/codename-ps5/cache/tmp-XXXXXX";

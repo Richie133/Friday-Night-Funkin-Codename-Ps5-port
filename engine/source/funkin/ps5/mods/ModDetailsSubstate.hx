@@ -13,7 +13,7 @@ import funkin.ps5.ui.PS5UI;
 
 /**
  * One online mod: its pictures, description and files. ✕ downloads the selected file,
- * which is unpacked and installed into mods/ (converted first if it is a Psych or V-Slice mod).
+ * which is unpacked and installed into mods/ (Codename Engine mods only for now).
  */
 class ModDetailsSubstate extends MusicBeatSubstate {
 	var mod:OnlineMod;
@@ -64,7 +64,9 @@ class ModDetailsSubstate extends MusicBeatSubstate {
 		add(info);
 
 		var engine = mod.engineHint != null ? mod.engineHint : UNKNOWN;
-		var badge = PS5UI.badge(engine == UNKNOWN ? "Engine detected on install" : engine.label(), engine.color(), 16);
+		var unsupported = engine == PSYCH || engine == VSLICE;
+		var badge = PS5UI.badge(engine == UNKNOWN ? "Engine detected on install" : engine.label() + (unsupported ? ": not supported in this version" : ""),
+			unsupported ? 0xFF5E5870 : engine.color(), 16);
 		badge.setPosition(PANEL_X + 574, info.y + info.height + 10);
 		add(badge);
 

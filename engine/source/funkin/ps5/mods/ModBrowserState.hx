@@ -44,7 +44,8 @@ private class ModCard extends FlxSpriteGroup {
 		author.setFormat(Paths.font("vcr.ttf"), 14, PS5UI.TEXT_DIM);
 		add(author);
 		if (mod.engineHint != null && mod.engineHint != UNKNOWN) {
-			badge = PS5UI.badge(mod.engineHint.label().split(" ")[0], mod.engineHint.color(), 13);
+			var unsupported = mod.engineHint == PSYCH || mod.engineHint == VSLICE;
+			badge = PS5UI.badge(mod.engineHint.label().split(" ")[0] + (unsupported ? ": unsupported" : ""), unsupported ? 0xFF5E5870 : mod.engineHint.color(), 13);
 			badge.setPosition(12, 12);
 			add(badge);
 		}
@@ -80,14 +81,13 @@ private class ModCard extends FlxSpriteGroup {
  * Browse, search and download mods from GameBanana and Game Jolt.
  *
  * Tabs (L1 / R1): Codename (GameBanana's Codename mod folder category), all FNF mods,
- * Psych, V-Slice, a GameBanana search, Game Jolt's FNF games, and the downloads.
+ * a GameBanana search, Game Jolt's FNF games, and the downloads. Only Codename Engine
+ * mods install for now (Psych Engine and V-Slice support is switched off).
  */
 class ModBrowserState extends MusicBeatState {
 	public static var tabs:Array<BrowserFeed> = [
 		{name: "Codename", source: GAMEBANANA, kind: 'category:${GameBanana.CODENAME_CATEGORY}'},
 		{name: "All FNF", source: GAMEBANANA, kind: "subfeed", sort: "default"},
-		{name: "Psych", source: GAMEBANANA, kind: "search-preset:psych engine"},
-		{name: "V-Slice", source: GAMEBANANA, kind: "search-preset:v-slice"},
 		{name: "Search", source: GAMEBANANA, kind: "search"},
 		{name: "Game Jolt", source: GAMEJOLT, kind: "section:best"},
 		{name: "Downloads", source: LOCAL, kind: "downloads"}
@@ -201,30 +201,7 @@ class ModBrowserState extends MusicBeatState {
 
 		ModDownloads.onAnyChange = job -> if (tabs[tab].kind == "downloads") refreshDownloads();
 
-		// the Psych and V-Slice tabs use GameBanana's own categories when the list loads
-		if (GameBanana.categories.length == 0) GameBanana.loadCategories(() -> {
-			resolvePresetTabs();
-			if (tabs[tab].kind.startsWith("category")) reload();
-		}, _ -> {});
-		else resolvePresetTabs();
-
 		switchTab(0, true);
-	}
-
-	function resolvePresetTabs() {
-		for (t in tabs) {
-			if (!t.kind.startsWith("search-preset:")) continue;
-			var want = t.name == "Psych" ? ["psych"] : ["v-slice", "vslice", "v slice", "base game"];
-			for (c in GameBanana.categories) {
-				var n = c.name.toLowerCase();
-				var match = false;
-				for (w in want) if (n.indexOf(w) >= 0) match = true;
-				if (match && (n.indexOf("folder") >= 0 || n.indexOf("mod") >= 0 || c.count > 20)) {
-					t.kind = 'category:${c.id}';
-					break;
-				}
-			}
-		}
 	}
 
 	function switchTab(change:Int, force:Bool = false) {
@@ -279,7 +256,6 @@ class ModBrowserState extends MusicBeatState {
 
 	function feedForRequest():BrowserFeed {
 		var feed = tabs[tab];
-		if (feed.kind.startsWith("search-preset:")) return {name: feed.name, source: GAMEBANANA, kind: "search"};
 		var sorts = sortsFor(feed);
 		if (sorts != null) {
 			var s = sorts[sortIndex.exists(tab) ? sortIndex.get(tab) : 0];
@@ -298,7 +274,6 @@ class ModBrowserState extends MusicBeatState {
 
 	function queryForRequest():String {
 		var feed = tabs[tab];
-		if (feed.kind.startsWith("search-preset:")) return feed.kind.substr("search-preset:".length);
 		if (feed.source == GAMEJOLT) return gjQuery;
 		return query;
 	}

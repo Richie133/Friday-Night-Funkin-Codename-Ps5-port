@@ -7,7 +7,10 @@ enum abstract ModSource(String) from String to String {
 	var LOCAL = "local";
 }
 
-/** Which engine a mod was made for. Decides how it is installed. */
+/**
+ * Which engine a mod was made for. Only Codename Engine mods are installed for now;
+ * Psych Engine and V-Slice ones are recognised so the player can be told why not.
+ */
 enum abstract ModEngine(String) from String to String {
 	var CODENAME = "codename";
 	var PSYCH = "psych";
@@ -24,6 +27,11 @@ enum abstract ModEngine(String) from String to String {
 			case EXECUTABLE: "Full game build";
 			default: "Unknown engine";
 		}
+	}
+
+	/** Whether this version of the port installs and runs mods made for this engine. */
+	public function supported():Bool {
+		return (cast this : ModEngine) == CODENAME;
 	}
 
 	public function color():Int {

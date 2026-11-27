@@ -222,7 +222,7 @@ class Script extends FlxBasic implements IFlxDestroyable
 		"hsc",
 		"hxs",
 		"pack", // combined file
-		"lua" /** ACTUALLY NOT SUPPORTED, ONLY FOR THE MESSAGE (the PS5 port runs them as Psych Lua) **/];
+		"lua" /** ACTUALLY NOT SUPPORTED, ONLY FOR THE MESSAGE **/];
 
 	/**
 	 * Currently executing script.
@@ -277,13 +277,8 @@ class Script extends FlxBasic implements IFlxDestroyable
 					var arr = Assets.getText(path).split("________PACKSEP________");
 					fromString(arr[1], arr[0]);
 				case "lua":
-					#if PS5_PORT
-					// the PS5 port runs Psych Engine Lua scripts
-					new funkin.ps5.psych.PsychLuaScript(path);
-					#else
 					Logs.error("Lua is not supported in this engine. Use HScript instead.");
 					new DummyScript(path);
-					#end
 				default:
 					new DummyScript(path);
 			}
@@ -303,12 +298,8 @@ class Script extends FlxBasic implements IFlxDestroyable
 			case "hx" | "hscript" | "hsc" | "hxs":
 				new HScript(path).loadFromString(code);
 			case "lua":
-				#if PS5_PORT
-				new funkin.ps5.psych.PsychLuaScript(path).loadFromString(code);
-				#else
 				Logs.error("Lua is not supported in this engine. Use HScript instead.");
 				new DummyScript(path).loadFromString(code);
-				#end
 			default:
 				new DummyScript(path).loadFromString(code);
 		}

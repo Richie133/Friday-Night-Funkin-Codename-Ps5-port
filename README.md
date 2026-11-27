@@ -14,10 +14,11 @@ homebrew app (`PPSA52210`).
 
 **Status: beta.** The game code has been run in the Linux build of the port; the
 console layer (SDL drivers, linking, packaging) is being tested on hardware now.
-0.1.0 and 0.1.1 stopped at start-up on a PS5; 0.1.2 fixes the causes found so far.
-Please report problems in
+0.1.0 to 0.1.2 stopped at start-up on a PS5; 0.1.3 takes Psych Engine and V-Slice
+support out for now to narrow it down. Please report problems in
 [Issues](https://github.com/Richie133/Friday-Night-Funkin-Codename-Ps5-port/issues)
-with `/data/codename-ps5/logs/crash.txt` and `codename.log` (same folder), or a photo
+with `/data/codename-ps5/logs/crash.txt` and `codename.log` (same folder;
+`codename.prev.log` is the run before the last start), or a photo
 of the notification the game shows when it stops. Addresses are written as
 `eboot+0x…`; each release has `PPSA52210-symbols.txt.gz`, the function addresses of
 its `eboot.bin`, to turn them into names (the console's own error screen adds
@@ -34,20 +35,14 @@ its `eboot.bin`, to turn them into names (the console's own error screen adds
 - **USB keyboard and mouse**, as on PC (keyboard controls, editors, typing).
 - **Mod browser** (△ on the main menu): GameBanana's
   [Codename mod category](https://gamebanana.com/mods/cats/34764), all of
-  [FNF on GameBanana](https://gamebanana.com/games/8694) (with Psych Engine and
-  V-Slice filters), search, and [Game Jolt's FNF games](https://gamejolt.com/games/best/tag-fnf).
+  [FNF on GameBanana](https://gamebanana.com/games/8694), search, and
+  [Game Jolt's FNF games](https://gamejolt.com/games/best/tag-fnf). Codename Engine mods
+  install; Psych Engine and V-Slice mods are marked as not supported.
   Each mod has a page with pictures, description and files; ✕ downloads and installs it.
   Downloads run in the background (OPTIONS shows them).
 - **Custom on-screen keyboard** for searching mods: ✕ types, ○ deletes, △ space,
   □ shift, L1/R1 move the cursor, OPTIONS searches. The touchpad pointer and a USB
   keyboard work too.
-- **Psych Engine mods**: converted when installed (charts, events, characters, stages,
-  weeks, icons), and their Lua scripts run on Lua 5.1 through a Psych API layer
-  (sprites, texts, tweens, timers, sounds, cameras, properties, input, saves,
-  `runHaxeCode`...). Psych's built-in events (Hey!, Camera Follow Pos, Change Scroll
-  Speed, Set Property...) are played too.
-- **V-Slice (base game 0.5+) mods**: songs, charts, characters, stages and levels
-  converted when installed.
 - **Mod menu** (□ on the main menu): every installed mod with its page; ✕ plays it,
   △ opens the browser, □ deletes it.
 - **Picture settings** (Options > PS5 > Picture): 1080p / 1440p / 4K, 60 or 120 Hz,
@@ -57,8 +52,11 @@ its `eboot.bin`, to turn them into names (the console's own error screen adds
   read every frame.
 
 What does not work: video cutscenes (no video decoder on the console), Discord, the
-update checker, `.ndll` plugins, Psych `.hx` scripts and shaders in Psych Lua scripts.
-Codename's own HScript mods work as on PC.
+update checker and `.ndll` plugins. Codename's own HScript mods work as on PC.
+
+Psych Engine and V-Slice mod support (converting them on install, running Psych Lua
+scripts) is switched off for now, while the port is made to start on the console.
+0.1.0 to 0.1.2 had it; it is in the git history (before 0.1.3) to bring back later.
 
 ## Install
 
@@ -115,11 +113,10 @@ How the console build works is in [`ps5/README.md`](ps5/README.md).
   Funkin' Crew. The Codename team asks that the engine not be re-released as a whole
   on other platforms; this port is a fan project, shared as source and a homebrew
   build, and will be taken down if they ask.
-- HaxeFlixel, OpenFL, Lime, hxcpp and Codename's forks of them; Psych Engine
-  (ShadowMario) and V-Slice (Funkin' Crew) for the formats the converters read.
+- HaxeFlixel, OpenFL, Lime, hxcpp and Codename's forks of them.
 - [ps5-payload-sdk](https://github.com/ps5-payload-dev/sdk),
   [ps5-opengl](https://github.com/darkxex/ps5-opengl), the ps5-native-app-boilerplate
-  and the PacBrew ports; Lua 5.1 (MIT).
+  and the PacBrew ports.
 
 The port's own code is GPL-3.0-or-later (`LICENSE`); see `THIRD_PARTY_NOTICES.md` for
 every part and its licence.

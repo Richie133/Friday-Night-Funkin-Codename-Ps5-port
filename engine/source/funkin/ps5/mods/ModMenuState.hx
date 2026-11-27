@@ -154,7 +154,7 @@ class ModMenuState extends MusicBeatState {
 		if (m == null) {
 			lines.push("Codename Engine's own songs and weeks, with no mod loaded.");
 		} else {
-			lines.push(m.engine.label() + (m.engine == PSYCH ? " (converted; Lua scripts run through the Psych layer)" : (m.engine == VSLICE ? " (converted; Polymod scripts don't run)" : "")));
+			lines.push(m.engine.label() + (m.engine == PSYCH || m.engine == VSLICE ? " (not supported in this version: it may not load, and Lua scripts don't run)" : ""));
 			if (m.author != null) lines.push('by ${m.author}');
 			if (m.source != null && m.source != LOCAL) lines.push('From ${m.source == GAMEBANANA ? "GameBanana" : "Game Jolt"}' + (m.version != null && m.version != "" ? ', version ${m.version}' : ""));
 			else lines.push("Copied in by hand");

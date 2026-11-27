@@ -164,7 +164,7 @@ class GameJolt {
 
 	static function isModFolderName(name:String):Bool {
 		var n = name.toLowerCase();
-		return n.indexOf("mod") >= 0 && (n.indexOf("folder") >= 0 || n.indexOf("psych") >= 0 || n.indexOf("codename") >= 0 || n.indexOf("mods") >= 0);
+		return n.indexOf("mod") >= 0 && (n.indexOf("folder") >= 0 || n.indexOf("codename") >= 0 || n.indexOf("mods") >= 0);
 	}
 
 	/** Game Jolt descriptions are a JSON document of paragraphs and text runs. */

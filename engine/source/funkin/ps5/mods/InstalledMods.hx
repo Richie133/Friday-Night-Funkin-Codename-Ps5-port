@@ -86,6 +86,7 @@ class InstalledMods {
 			isZip: isZip
 		};
 		if (!isZip) {
+			// converted by 0.1.0-0.1.2, which ran Psych Lua; this version does not
 			if (FileSystem.exists(Path.join([folder, "data/config/ps5-psych.txt"]))) mod.engine = PSYCH;
 			var infoPath = Path.join([folder, INFO_FILE]);
 			if (FileSystem.exists(infoPath)) try {

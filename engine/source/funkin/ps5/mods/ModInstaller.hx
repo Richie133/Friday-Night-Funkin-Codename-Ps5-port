@@ -2,7 +2,6 @@ package funkin.ps5.mods;
 
 import funkin.ps5.PS5;
 import funkin.ps5.mods.OnlineMod;
-import haxe.Json;
 import haxe.io.Path;
 #if sys
 import sys.FileSystem;
@@ -22,11 +21,10 @@ typedef FoundMod = {
  * Turns an unpacked archive into folders under mods/.
  *
  *  - Codename Engine mods are moved in as they are.
- *  - Psych Engine and V-Slice mods are converted (PsychConverter, VSliceConverter); the
- *    original files are kept next to the converted ones, so scripts that load
- *    them by their old paths still find them.
- *  - Whole game builds (an .exe with an assets/ folder) have their mods/ folders and
- *    their assets imported as a mod of the engine they were built with.
+ *  - Psych Engine and V-Slice mods are recognised but not installed: this version of
+ *    the port does not run them, and the player is told so.
+ *  - Whole Codename Engine builds (an .exe with an assets/ folder) have the mods in
+ *    their mods/ folder installed, or their assets/ as a mod when that folder is empty.
  *
  * Runs on a worker thread; reports progress through `log`.
  */
@@ -40,23 +38,29 @@ class ModInstaller {
 	 * @return the folder names the mods were installed as
 	 */
 	public static function install(source:String, info:Null<OnlineMod>, log:String->Void):Array<String> {
-		var found = findMods(source, 0);
-		if (found.length == 0) throw "This archive has no mod in it that the engine can read (no songs, data or charts were found).";
+		var all = findMods(source, 0);
+		if (all.length == 0) throw "This archive has no mod in it that the engine can read (no songs, data or charts were found).";
+		var found = [for (mod in all) if (mod.engine.supported()) mod];
+		for (mod in all) if (!mod.engine.supported()) log('Skipping "${mod.name}": ${mod.engine.label()} mods are not supported in this version');
+		if (found.length == 0) throw unsupportedMessage(all[0].engine);
 		var installed:Array<String> = [];
 		var baseName = info != null ? PS5.safeFolderName(info.name) : null;
 		for (i => mod in found) {
 			var name = baseName != null ? (found.length > 1 ? '$baseName - ${PS5.safeFolderName(mod.name)}' : baseName) : PS5.safeFolderName(mod.name);
 			var target = uniqueFolder(modsPath + name);
 			log('Installing "${Path.withoutDirectory(target)}" (${mod.engine.label()})');
-			switch (mod.engine) {
-				case PSYCH: PsychConverter.convert(mod.path, target, log);
-				case VSLICE: VSliceConverter.convert(mod.path, target, log);
-				default: moveFolder(mod.path, target);
-			}
+			moveFolder(mod.path, target);
 			InstalledMods.writeInfo(target, info, mod.engine);
 			installed.push(Path.withoutDirectory(target));
 		}
 		return installed;
+	}
+
+	static function unsupportedMessage(engine:ModEngine):String {
+		return switch (engine) {
+			case EXECUTABLE: "This is a whole game build with no Codename Engine mod in it. This version of the port installs Codename Engine mods only.";
+			default: 'This is a ${engine.label()} mod. This version of the port installs Codename Engine mods only; Psych Engine and V-Slice support is switched off for now.';
+		}
 	}
 
 	/** Walks the unpacked folder looking for mod roots, up to a few levels deep. */
@@ -82,15 +86,16 @@ class ModInstaller {
 		return result;
 	}
 
-	/** A build of an engine: its mods/ folder holds the mods; its assets/ is the mod itself. */
+	/**
+	 * A build of an engine: its mods/ folder holds the mods. A build of another engine
+	 * (or a source mod's own assets/) is reported as that engine, which is not installed.
+	 */
 	static function findInBuild(dir:String):Array<FoundMod> {
 		var result:Array<FoundMod> = [];
 		#if sys
-		var assets = Path.join([dir, "assets"]);
 		var mods = Path.join([dir, "mods"]);
 		var buildEngine = detectBuildEngine(dir);
 		if (FileSystem.exists(mods) && FileSystem.isDirectory(mods)) {
-			// a Psych "mods" folder can hold loose files (the mod itself) or one folder per mod
 			var looseEngine = detect(mods);
 			if (looseEngine != UNKNOWN && looseEngine != EXECUTABLE)
 				result.push({path: mods, engine: looseEngine, name: Path.withoutDirectory(dir)});
@@ -98,13 +103,15 @@ class ModInstaller {
 				var full = Path.join([mods, entry]);
 				if (!FileSystem.isDirectory(full)) continue;
 				var e = detect(full);
-				if (e != UNKNOWN && e != EXECUTABLE && !isTemplateMod(full)) result.push({path: full, engine: e, name: entry});
+				if (e != UNKNOWN && e != EXECUTABLE) result.push({path: full, engine: e, name: entry});
 			}
 		}
-		if (FileSystem.exists(assets) && FileSystem.isDirectory(assets) && hasCustomContent(assets)) {
-			// assets of a source-modded build: imported as a mod for the engine it was built with
-			var root = flattenBuildAssets(assets, buildEngine);
-			if (root != null) result.push({path: root, engine: buildEngine == UNKNOWN ? PSYCH : buildEngine, name: Path.withoutDirectory(dir)});
+		if (result.length == 0) {
+			var assets = Path.join([dir, "assets"]);
+			if (buildEngine == CODENAME && FileSystem.exists(Path.join([assets, "data"])))
+				result.push({path: assets, engine: CODENAME, name: Path.withoutDirectory(dir)}); // a source mod's own build
+			else
+				result.push({path: dir, engine: buildEngine == CODENAME ? EXECUTABLE : buildEngine, name: Path.withoutDirectory(dir)});
 		}
 		#end
 		return result;
@@ -143,7 +150,7 @@ class ModInstaller {
 		if (FileSystem.exists(Path.join([assets, "preload/data/songs"])) || FileSystem.exists(Path.join([assets, "data/songs"])) && containsSuffix(Path.join([assets, "data/songs"]), "-metadata.json", 2))
 			return VSLICE;
 		#end
-		return PSYCH;
+		return PSYCH; // most FNF builds are Psych Engine ones
 	}
 
 	/** Psych keeps charts in data/<song>/<song>.json. */
@@ -158,60 +165,10 @@ class ModInstaller {
 		return false;
 	}
 
-	/** A Psych build ships an empty "introMod" or "readme" template under mods/. */
-	static function isTemplateMod(dir:String):Bool {
-		var name = Path.withoutDirectory(dir).toLowerCase();
-		return name == "intromod" || name == "readme" || name == "template";
-	}
-
-	/** True if a build's assets folder has anything besides the base game's weeks. */
-	static function hasCustomContent(assets:String):Bool {
-		#if sys
-		for (p in ["data", "shared/data", "preload/data", "songs"]) if (FileSystem.exists(Path.join([assets, p]))) return true;
-		#end
-		return false;
-	}
-
-	/**
-	 * Psych and V-Slice builds split their assets into libraries (preload/, shared/,
-	 * week1/...). They are merged into one tree that looks like a mod folder.
-	 */
-	static function flattenBuildAssets(assets:String, engine:ModEngine):Null<String> {
-		#if sys
-		var out = assets + "-merged";
-		if (FileSystem.exists(out)) PS5.deleteDir(out);
-		Archive.mkdirs(out);
-		var libraries = ["preload", "shared"];
-		for (entry in FileSystem.readDirectory(assets)) {
-			var full = Path.join([assets, entry]);
-			if (!FileSystem.isDirectory(full)) continue;
-			if (libraries.contains(entry) || ~/^week\d+$/.match(entry) || entry == "videos" || entry == "fonts" || entry == "songs" || entry == "music" || entry == "sounds" || entry == "images" || entry == "data") {
-				if (libraries.contains(entry) || ~/^week\d+$/.match(entry)) mergeInto(full, out);
-				else mergeInto(full, Path.join([out, entry]));
-			}
-		}
-		return out;
-		#else
-		return null;
-		#end
-	}
-
 	static function modName(dir:String, engine:ModEngine):String {
 		#if sys
 		try {
 			switch (engine) {
-				case PSYCH:
-					var pack = Path.join([dir, "pack.json"]);
-					if (FileSystem.exists(pack)) {
-						var data:Dynamic = Json.parse(File.getContent(pack));
-						if (data.name != null && Std.string(data.name).trim() != "") return Std.string(data.name);
-					}
-				case VSLICE:
-					var meta = Path.join([dir, "_polymod_meta.json"]);
-					if (FileSystem.exists(meta)) {
-						var data:Dynamic = Json.parse(File.getContent(meta));
-						if (data.title != null) return Std.string(data.title);
-					}
 				case CODENAME:
 					var ini = Path.join([dir, "data/config/modpack.ini"]);
 					if (FileSystem.exists(ini)) {
@@ -264,30 +221,6 @@ class ModInstaller {
 		#end
 	}
 
-	/** Copies `from` over `to`, keeping files that are already there unless overwritten. */
-	public static function mergeInto(from:String, to:String) {
-		#if sys
-		Archive.mkdirs(to);
-		for (entry in FileSystem.readDirectory(from)) {
-			var src = Path.join([from, entry]);
-			var dst = Path.join([to, entry]);
-			if (FileSystem.isDirectory(src)) mergeInto(src, dst);
-			else {
-				if (FileSystem.exists(dst)) try FileSystem.deleteFile(dst) catch (e:Dynamic) {}
-				try FileSystem.rename(src, dst) catch (e:Dynamic) File.copy(src, dst);
-			}
-		}
-		#end
-	}
-
-	public static function copyFile(from:String, to:String) {
-		#if sys
-		if (!FileSystem.exists(from)) return;
-		Archive.mkdirs(Path.directory(to));
-		File.copy(from, to);
-		#end
-	}
-
 	static function containsSuffix(dir:String, suffix:String, depth:Int):Bool {
 		#if sys
 		if (!FileSystem.exists(dir)) return false;
@@ -311,20 +244,5 @@ class ModInstaller {
 		}
 		#end
 		return false;
-	}
-
-	/** Lists files under `dir` (relative paths), for converters. */
-	public static function listFiles(dir:String, ?prefix:String = ""):Array<String> {
-		var out:Array<String> = [];
-		#if sys
-		if (!FileSystem.exists(dir)) return out;
-		for (e in FileSystem.readDirectory(dir)) {
-			var full = Path.join([dir, e]);
-			var rel = prefix == "" ? e : '$prefix/$e';
-			if (FileSystem.isDirectory(full)) for (f in listFiles(full, rel)) out.push(f);
-			else out.push(rel);
-		}
-		#end
-		return out;
 	}
 }

@@ -11,14 +11,8 @@ following.
 |---|---|---|---|
 | Codename Engine, commit in `engine/UPSTREAM_COMMIT`, with the port's changes (marked `PS5_PORT` / `ps5`) | `engine/` except the rows below | CodenameCrew and contributors | Apache-2.0 (`engine/LICENSE-CodenameEngine.txt`) |
 | Codename Engine's assets (not stored here: fetched from the same commit at build time) | `engine/assets` | CodenameCrew; Friday Night Funkin' assets by the Funkin' Crew | as in the Codename Engine repository |
-| The port's game code: mod browser, installers and converters, mod menu, on-screen keyboard, options, warning, Psych Lua layer | `engine/source/funkin/ps5/`, `engine/assets-overlay/` | Richie133 and contributors | GPL-3.0-or-later |
-| Lua 5.1.5 | `engine/lua/` | Lua.org, PUC-Rio | MIT (`engine/lua/COPYRIGHT`) |
+| The port's game code: mod browser and installer, mod menu, on-screen keyboard, options, warning | `engine/source/funkin/ps5/`, `engine/assets-overlay/` | Richie133 and contributors | GPL-3.0-or-later |
 | Mozilla CA certificate store, as packaged by Debian's ca-certificates | `engine/assets-overlay/ps5/cacert.pem` | Mozilla and the CA program participants | MPL-2.0 |
-
-The Psych Engine and V-Slice converters read those engines' file formats; no code
-from [Psych Engine](https://github.com/ShadowMario/FNF-PsychEngine) (Apache-2.0) or
-[Funkin'](https://github.com/FunkinCrew/Funkin) is included. The names of Psych's Lua
-functions and callbacks are kept so that Psych mods run.
 
 ## The console layer (`ps5/`, `tooling/`, `tools/`, `runtime/`)
 

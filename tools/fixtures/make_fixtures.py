@@ -6,6 +6,8 @@
 Writes made-up GameBanana and Game Jolt answers in the shapes those APIs use, pictures,
 and three small test mods built from the base game's own files: a Psych Engine mod, a
 V-Slice mod and a Codename Engine mod, each zipped the way GameBanana serves them.
+(Psych and V-Slice support is switched off for now: their mods check that the
+installer turns them down with a clear message.)
 Nothing here is downloaded; every mod, name and number is invented.
 """
 import io
