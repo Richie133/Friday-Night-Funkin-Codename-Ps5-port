@@ -178,8 +178,9 @@ class Main extends Sprite
 
 		ModsFolder.init();
 		#if MOD_SUPPORT
-		if (FileSystem.exists("mods/autoload.txt"))
-			modToLoad = File.getContent("mods/autoload.txt").trim();
+		var autoload = #if ps5 ModsFolder.modsPath + "autoload.txt" #else "mods/autoload.txt" #end; // PS5_PORT
+		if (FileSystem.exists(autoload))
+			modToLoad = File.getContent(autoload).trim();
 
 		ModsFolder.switchMod(modToLoad.getDefault(Options.lastLoadedMod));
 		#end

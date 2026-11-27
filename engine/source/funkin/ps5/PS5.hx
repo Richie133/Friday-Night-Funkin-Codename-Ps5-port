@@ -15,7 +15,7 @@ import sys.io.File;
  */
 class PS5 {
 	/** The port's own version, shown in the warning and the options. */
-	public static inline var VERSION:String = "0.1.5-beta";
+	public static inline var VERSION:String = "0.1.6-beta";
 	/** Title ID of the native PS5 app. */
 	public static inline var TITLE_ID:String = "PPSA52210";
 	/** Where the port's source lives. */
@@ -33,7 +33,17 @@ class PS5 {
 	 * The writable folder that holds mods, addons, saves, downloads and logs.
 	 * On the console it is `/data/codename-ps5/`; on a PC it is the working folder.
 	 */
-	public static var dataRoot(default, null):String = #if ps5 "/data/codename-ps5/" #else "./" #end;
+	public static var dataRoot(default, null):String = DATA_DIR;
+
+	/**
+	 * `dataRoot` as a compile-time constant, for engine code that needs it before any
+	 * static has been set up. On the console the working folder cannot be relied on
+	 * (changing it fails), so the engine's own relative paths are made absolute with it.
+	 */
+	public static inline var DATA_DIR:String = #if ps5 "/data/codename-ps5/" #else "./" #end;
+
+	/** Codename's scratch folder (`./.temp/` on a PC). */
+	public static inline var TEMP_DIR:String = #if ps5 "/data/codename-ps5/cache/.temp/" #else "./.temp/" #end;
 
 	/** The read-only folder with the engine's own assets (`assets/`, `manifest/`). */
 	public static var appRoot(default, null):String = #if ps5 "/app0/" #else "./" #end;
@@ -59,7 +69,10 @@ class PS5 {
 		#if ps5
 		for (dir in ["", "mods", "addons", "downloads", "cache", "logs", "saves"])
 			ensureDir(dataRoot + dir);
+		// Codename's relative paths no longer depend on this (see DATA_DIR); the log
+		// says whether the console allowed it
 		try Sys.setCwd(dataRoot) catch (e) {}
+		try Sys.println('[codename-ps5] working folder: ' + Sys.getCwd()) catch (e) {}
 		#else
 		for (dir in ["downloads", "cache"]) ensureDir(dataRoot + dir);
 		#end

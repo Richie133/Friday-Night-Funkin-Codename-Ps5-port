@@ -77,7 +77,7 @@ class ZipFolderLibrary extends AssetLibrary implements IModsAssetLibrary {
 		if (videoCacheRemap.exists(originalPath)) return videoCacheRemap.get(originalPath);
 
 		// We adding the length of the string to counteract folder in folder naming duplicates.
-		var newPath = './.temp/${_parsedAsset.length}-zipvideo-${_parsedAsset.split("/").pop()}';
+		var newPath = funkin.ps5.PS5.TEMP_DIR + '${_parsedAsset.length}-zipvideo-${_parsedAsset.split("/").pop()}';
 		File.saveBytes(newPath, unzip(assets[_parsedAsset]));
 		videoCacheRemap.set(originalPath, newPath);
 		return newPath;

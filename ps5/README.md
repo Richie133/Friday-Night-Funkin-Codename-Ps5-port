@@ -43,6 +43,10 @@ answers listings from it; HTTPS uses the certificates in `assets/ps5/cacert.pem`
   `/data/codename-ps5/logs/crash.txt`. Addresses there are `eboot+0x…` offsets into
   `eboot.bin`, the numbering of each release's `PPSA52210-symbols.txt.gz`; the console's
   own error screen shows them plus `0x400000`.
+- The working folder cannot be changed on the console (`Sys.setCwd` fails without an
+  error), so Codename's relative paths are absolute there: `PS5.DATA_DIR` for mods,
+  addons and autoload, `PS5.TEMP_DIR` for `.temp`. New relative paths in engine code
+  need the same.
 - Dear ImGui (Codename's debug console): multi-viewport stays off (one window), and its
   checks (`IM_ASSERT`) are logged instead of ending the game (`patch-libs.py`,
   `CNE_PS5_IMGUI_SOFT_ASSERT` in `hxcpp/ps5-toolchain.xml`, `native/crash_report.c`).

@@ -33,7 +33,7 @@ class MainState extends FlxState {
 		if (!initiated) Main.loadGameSettings();
 
 		#if sys
-		CoolUtil.deleteFolder('./.temp/'); // delete temp folder
+		CoolUtil.deleteFolder(funkin.ps5.PS5.TEMP_DIR); // delete temp folder
 		#end
 		Options.save();
 
@@ -166,7 +166,7 @@ class MainState extends FlxState {
 
 		#if sys
 		try {
-			CoolUtil.safeAddAttributes('./.temp/', NativeAPI.FileAttribute.HIDDEN);
+			CoolUtil.safeAddAttributes(funkin.ps5.PS5.TEMP_DIR, NativeAPI.FileAttribute.HIDDEN);
 		}
 		catch (e) {
 			Logs.warn("Unable to make the .temp directory... is the game unpacked?");
