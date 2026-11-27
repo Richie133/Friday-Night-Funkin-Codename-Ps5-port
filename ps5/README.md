@@ -36,6 +36,8 @@ answers listings from it; HTTPS uses the certificates in `assets/ps5/cacert.pem`
 
 - The CREATE button is the system's: the port uses □ and △ instead.
 - `/data/codename-ps5/logs/codename.log` has the game's output; send it with bug reports.
+- When Codename's own error screen comes up, the error also goes to a notification and
+  to `/data/codename-ps5/logs/error.txt` (`PS5.reportError`).
 - When the game stops on a failed assertion, a crash signal or `std::terminate`, it shows
   a notification with the reason and writes the details and the call stack to
   `/data/codename-ps5/logs/crash.txt`. Addresses there are `eboot+0x…` offsets into

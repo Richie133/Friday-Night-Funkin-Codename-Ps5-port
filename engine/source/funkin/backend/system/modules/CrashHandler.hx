@@ -110,6 +110,9 @@ final class CrashHandler {
 
 		var report = formatReport(message, stack);
 		trace(report);
+		#if PS5_PORT
+		funkin.ps5.PS5.reportError(message, report);
+		#end
 		quarantine();
 
 		try {

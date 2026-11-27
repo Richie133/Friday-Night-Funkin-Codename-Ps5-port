@@ -116,6 +116,25 @@ class PS5 {
 	}
 
 	/**
+	 * Codename's error screen came up (CrashHandler.present): the error also goes to
+	 * logs/error.txt and, on the console, into a notification, so it can be read even
+	 * when the screen cannot show it.
+	 */
+	public static function reportError(message:String, report:String) {
+		try {
+			#if sys
+			ensureDir(dataRoot + "logs");
+			sys.io.File.saveContent(dataRoot + "logs/error.txt", report);
+			#end
+		} catch (_:Dynamic) {}
+		try {
+			var text = message == null ? "unknown error" : message;
+			if (text.length > 220) text = text.substr(0, 220) + "...";
+			PS5Native.notify('Codename Engine error:\n$text\nDetails: ${dataRoot}logs/error.txt');
+		} catch (_:Dynamic) {}
+	}
+
+	/**
 	 * Opens a web page in the PS5's browser, or the PC's browser in the test build.
 	 */
 	public static function openURL(url:String) {
