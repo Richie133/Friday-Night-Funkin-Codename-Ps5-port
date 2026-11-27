@@ -59,8 +59,18 @@ export HXCPP_COMPILE_THREADS=${HXCPP_COMPILE_THREADS:-$(nproc)}
 liblime=$lime_dir/ndll/PS5/liblime.a
 if ! $skip_lime; then
   step "Lime for the PS5 (liblime.a)"
+  # hxcpp keeps an object that is newer than its source whatever the flags, and does not
+  # look at headers: when the console toolchain or the library patches change, start
+  # Lime's objects over (the compile cache still answers for what did not change)
+  stamp=$lime_dir/project/obj/ps5-inputs.sha256
+  inputs=$(cat "$root/ps5/hxcpp/ps5-toolchain.xml" "$root/ps5/tools/patch-libs.py" | sha256sum | cut -d' ' -f1)
+  if [[ "$(cat "$stamp" 2>/dev/null)" != "$inputs" ]]; then
+    echo "toolchain or patches changed: rebuilding all of Lime"
+    rm -rf "$lime_dir"/project/obj/ps5*
+  fi
   (cd "$lime_dir/project" && haxelib run hxcpp Build.xml -Dps5 -Dstatic_link -DHXCPP_M64 \
     -DPS5_PAYLOAD_SDK="$PS5_PAYLOAD_SDK" -DPS5_OPENGL_PREFIX="$PS5_OPENGL_PREFIX" -DLIME_PS5_DIR="$LIME_PS5_DIR")
+  mkdir -p "$lime_dir/project/obj" && echo "$inputs" > "$stamp"
 fi
 [[ -f $liblime ]] || { echo "missing $liblime" >&2; exit 2; }
 
