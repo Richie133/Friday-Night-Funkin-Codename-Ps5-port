@@ -15,7 +15,7 @@ import sys.io.File;
  */
 class PS5 {
 	/** The port's own version, shown in the warning and the options. */
-	public static inline var VERSION:String = "0.1.6-beta";
+	public static inline var VERSION:String = "0.1.7-beta";
 	/** Title ID of the native PS5 app. */
 	public static inline var TITLE_ID:String = "PPSA52210";
 	/** Where the port's source lives. */
@@ -69,10 +69,10 @@ class PS5 {
 		#if ps5
 		for (dir in ["", "mods", "addons", "downloads", "cache", "logs", "saves"])
 			ensureDir(dataRoot + dir);
-		// Codename's relative paths no longer depend on this (see DATA_DIR); the log
-		// says whether the console allowed it
+		// Codename's relative paths no longer depend on this (see DATA_DIR); the
+		// native side logs whether the console allowed it (codename_ps5.c, which also
+		// answers getcwd: the console's own crashes)
 		try Sys.setCwd(dataRoot) catch (e) {}
-		try Sys.println('[codename-ps5] working folder: ' + Sys.getCwd()) catch (e) {}
 		#else
 		for (dir in ["downloads", "cache"]) ensureDir(dataRoot + dir);
 		#end

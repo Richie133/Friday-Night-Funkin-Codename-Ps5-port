@@ -156,7 +156,7 @@ mapfile -t nested < <(llvm-ar-18 t "$libgame" | grep '\.a$' | sort -u)
 hxcpp_archives=("$hxlibs"/*.a)
 group=$root/.deps/ps5-opengl/libps5opengl-group.a
 wraps=()
-for symbol in malloc calloc realloc free posix_memalign malloc_usable_size fcntl; do
+for symbol in malloc calloc realloc free posix_memalign malloc_usable_size fcntl getcwd chdir; do
   wraps+=("--wrap=$symbol")
 done
 stubs=("$PS5_OPENGL_PREFIX/lib/libSceAgc.so" "$PS5_OPENGL_PREFIX/lib/libSceAgcDriver.so")

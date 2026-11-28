@@ -18,6 +18,7 @@
  */
 
 #include <fcntl.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -36,6 +37,9 @@ extern char __cne_text_end[] __attribute__((visibility("hidden")));
 
 extern void cne_ps5_notify(const char *text);
 extern int sceKernelUsleep(uint32_t microseconds);
+extern int sceKernelGetModuleList(int *handles, size_t count, size_t *actual);
+extern int sceKernelGetModuleInfo(int handle, void *info);
+extern int pthread_getname_np(pthread_t thread, char *name, size_t size); /* libkernel; not in the SDK headers */
 
 void cne_ps5_report_fatal(const char *what);
 
@@ -62,6 +66,59 @@ static int walk_stack(uintptr_t frame, uintptr_t lowest, uintptr_t *out, int max
     return count;
 }
 
+/* The system module holding an address, for addresses outside eboot.bin (the
+ * console's own libraries): its name and the offset into it. Uses the module info
+ * layout of the system's SceKernelModuleInfo (size 0x160); best effort. */
+typedef struct {
+    uint64_t size;
+    char name[256];
+    struct {
+        uint64_t address;
+        uint32_t size;
+        int32_t protection;
+    } segments[4];
+    uint32_t segment_count;
+    uint8_t fingerprint[20];
+} ModuleInfo;
+
+static int module_for(uintptr_t address, char *name, size_t name_size, uintptr_t *offset)
+{
+    static int handles[256];
+    static ModuleInfo info;
+    size_t count = 0;
+    if (sceKernelGetModuleList(handles, 256, &count) != 0)
+        return 0;
+    for (size_t i = 0; i < count && i < 256; ++i) {
+        memset(&info, 0, sizeof(info));
+        info.size = sizeof(info);
+        if (sceKernelGetModuleInfo(handles[i], &info) != 0 || info.segment_count > 4)
+            continue;
+        for (uint32_t j = 0; j < info.segment_count; ++j) {
+            const uintptr_t start = (uintptr_t)info.segments[j].address;
+            if (address >= start && address - start < info.segments[j].size) {
+                info.name[sizeof(info.name) - 1] = '\0';
+                snprintf(name, name_size, "%s", info.name);
+                *offset = address - (uintptr_t)info.segments[0].address;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* "eboot+0x1e12", "libkernel.sprx+0x751d0 (0x8000751d0)" or "0x8000751d0" */
+static void describe(uintptr_t address, char *out, size_t size)
+{
+    char module[64];
+    uintptr_t offset = 0;
+    if (in_code(address))
+        snprintf(out, size, "eboot+%#lx", (unsigned long)(address - (uintptr_t)__cne_image_base));
+    else if (address != 0 && module_for(address, module, sizeof(module), &offset))
+        snprintf(out, size, "%s+%#lx (%#lx)", module, (unsigned long)offset, (unsigned long)address);
+    else
+        snprintf(out, size, "%#lx", (unsigned long)address);
+}
+
 static char report[6144];
 static size_t used;
 
@@ -79,10 +136,16 @@ __attribute__((format(printf, 1, 2))) static void add(const char *format, ...)
 
 static void add_address(const char *label, uintptr_t address)
 {
-    if (in_code(address))
-        add("%seboot+%#lx", label, (unsigned long)(address - (uintptr_t)__cne_image_base));
-    else
-        add("%s%#lx", label, (unsigned long)address);
+    char text[128];
+    describe(address, text, sizeof(text));
+    add("%s%s", label, text);
+}
+
+static void add_thread(void)
+{
+    char name[64] = "";
+    pthread_getname_np(pthread_self(), name, sizeof(name));
+    add("  thread: %s\n", name[0] ? name : "(unnamed)");
 }
 
 static void add_stack(const uintptr_t *frames, int count)
@@ -104,8 +167,12 @@ static void short_stack(char *out, size_t size, const uintptr_t *frames, int cou
     out[0] = '\0';
     for (int i = 0; i < count && i < 4 && length + 24 < size; ++i) {
         const uintptr_t address = frames[i];
-        length += (size_t)snprintf(out + length, size - length, i ? " %#lx" : "%#lx",
-                                   (unsigned long)(in_code(address) ? address - (uintptr_t)__cne_image_base : address));
+        char text[96];
+        if (in_code(address))
+            snprintf(text, sizeof(text), "%#lx", (unsigned long)(address - (uintptr_t)__cne_image_base));
+        else
+            describe(address, text, sizeof(text));
+        length += (size_t)snprintf(out + length, size - length, i ? " %s" : "%s", text);
     }
 }
 
@@ -155,6 +222,7 @@ __attribute__((noreturn)) void __assert(const char *function, const char *file, 
         used = 0;
         add("[codename-ps5] assertion failed: %s\n", expression ? expression : "?");
         add("  in %s, %s:%d\n", function ? function : "?", file ? file : "?", line);
+        add_thread();
         add_stack(frames, count);
         short_stack(stack, sizeof(stack), frames, count);
         snprintf(notice, sizeof(notice),
@@ -178,6 +246,7 @@ void cne_ps5_report_fatal(const char *what)
 
     used = 0;
     add("[codename-ps5] %s\n", what);
+    add_thread();
     add_stack(frames, count);
     short_stack(stack, sizeof(stack), frames, count);
     snprintf(notice, sizeof(notice), "Codename Engine stopped: %.200s\nat %s\nDetails: /data/codename-ps5/logs/crash.txt",
@@ -238,13 +307,18 @@ static void on_fatal_signal(int number, siginfo_t *info, void *context)
         /* a call through a null or unloaded pointer: the caller is on top of the stack */
         if (!in_code(rip) && rsp != 0 && (rsp & 7) == 0 && in_code(*(const uintptr_t *)rsp))
             frames[count++] = *(const uintptr_t *)rsp;
-        count += walk_stack((uintptr_t)registers->mc_rbp, rsp, frames + count, MAX_FRAMES - count);
+        /* the stack pointer can be the broken value itself (0.1.6: rsp 0x100026c946
+         * with a sound rbp): then the frame chain is followed from rbp */
+        const uintptr_t rbp = (uintptr_t)registers->mc_rbp;
+        const uintptr_t lowest = ((rsp & 7) == 0 && rsp <= rbp && rbp - rsp < ((uintptr_t)64 << 20)) ? rsp : rbp;
+        count += walk_stack(rbp, lowest, frames + count, MAX_FRAMES - count);
 
         used = 0;
         add("[codename-ps5] fatal signal %d (%s), fault address %#lx\n", number, signal_name(number),
             (unsigned long)(uintptr_t)(info ? info->si_addr : NULL));
+        add_thread();
         add_address("  rip ", rip);
-        add("  rsp %#lx  rbp %#lx\n", (unsigned long)rsp, (unsigned long)registers->mc_rbp);
+        add("\n  rsp %#lx  rbp %#lx\n", (unsigned long)rsp, (unsigned long)registers->mc_rbp);
         add("  rax %#lx  rbx %#lx  rcx %#lx  rdx %#lx\n", (unsigned long)registers->mc_rax,
             (unsigned long)registers->mc_rbx, (unsigned long)registers->mc_rcx, (unsigned long)registers->mc_rdx);
         add("  rsi %#lx  rdi %#lx  r8 %#lx  r9 %#lx\n", (unsigned long)registers->mc_rsi,

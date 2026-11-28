@@ -14,8 +14,8 @@ homebrew app (`PPSA52210`).
 
 **Status: beta.** The game code has been run in the Linux build of the port; the
 console layer (SDL drivers, linking, packaging) is being tested on hardware now.
-0.1.0 to 0.1.5 stopped at start-up on a PS5, each time a step further; 0.1.6 fixes
-the latest (Codename's relative paths). Psych Engine and V-Slice support is switched off for now.
+0.1.0 to 0.1.6 stopped at start-up on a PS5, each time a step further; 0.1.7 fixes
+the latest (the console's `getcwd`). Psych Engine and V-Slice support is switched off for now.
 Please report problems in
 [Issues](https://github.com/Richie133/Friday-Night-Funkin-Codename-Ps5-port/issues)
 with `/data/codename-ps5/logs/crash.txt` and `codename.log` (same folder;

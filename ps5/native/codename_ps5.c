@@ -166,13 +166,23 @@ static int find_module(const char *name)
 int cne_ps5_load_module(const char *name)
 {
     int handle = find_module(name);
-    if (handle < 0) {
-        char path[128];
-        snprintf(path, sizeof(path), "/system/common/lib/%s.sprx", name);
-        handle = sceKernelLoadStartModule(path, 0, NULL, 0, NULL, NULL);
+    if (handle >= 0) {
+        fprintf(stderr, "[codename-ps5] module %s: already loaded (%d)\n", name, handle);
+        return handle;
     }
-    fprintf(stderr, "[codename-ps5] module %s: %d\n", name, handle);
-    return handle < 0 ? -1 : handle;
+    /* 0.1.6 found neither library in /system/common/lib (0x80020002, not found):
+     * try the other system library folders too */
+    static const char *const folders[] = { "/system/common/lib/", "/system/priv/lib/", "/system_ex/common_ex/lib/",
+                                           "/system_ex/priv_ex/lib/" };
+    for (size_t i = 0; i < sizeof(folders) / sizeof(folders[0]); ++i) {
+        char path[128];
+        snprintf(path, sizeof(path), "%s%s.sprx", folders[i], name);
+        handle = sceKernelLoadStartModule(path, 0, NULL, 0, NULL, NULL);
+        fprintf(stderr, "[codename-ps5] module %s: %d\n", path, handle);
+        if (handle >= 0)
+            return handle;
+    }
+    return -1;
 }
 
 void *cne_ps5_module_symbol(int handle, const char *symbol)
@@ -229,6 +239,54 @@ int __wrap_fcntl(int descriptor, int command, ...)
     if (command == F_GETFD || command == F_SETFD || command == F_SETFL || command == F_GETFL)
         return socket_flags(descriptor, command, (int)argument);
     return result;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Working folder                                                            */
+
+/* The console's getcwd crashes in a native title (0.1.6 stopped on Sys.getCwd()
+ * at start-up, inside the system library). Linked with --wrap=getcwd and
+ * --wrap=chdir, the working folder is tracked here instead: chdir is passed on,
+ * its result is logged, and an absolute folder it accepted is remembered. The
+ * engine's own paths do not depend on it (PS5.DATA_DIR). */
+static char working_folder[1024] = "/app0";
+
+extern int __real_chdir(const char *path);
+
+int __wrap_chdir(const char *path)
+{
+    const int result = __real_chdir(path);
+    const int error = errno;
+    fprintf(stderr, "[codename-ps5] chdir(%s): %s\n", path ? path : "(null)", result == 0 ? "ok" : strerror(error));
+    if (result == 0 && path != NULL && path[0] == '/' && strlen(path) < sizeof(working_folder)) {
+        snprintf(working_folder, sizeof(working_folder), "%s", path);
+        size_t length = strlen(working_folder);
+        while (length > 1 && working_folder[length - 1] == '/')
+            working_folder[--length] = '\0';
+    }
+    errno = error;
+    return result;
+}
+
+char *__wrap_getcwd(char *buffer, size_t size)
+{
+    const size_t length = strlen(working_folder);
+    if (buffer == NULL) {
+        /* getcwd(NULL, size) allocates, as FreeBSD's does */
+        if (size == 0)
+            size = length + 1;
+        buffer = malloc(size);
+        if (buffer == NULL) {
+            errno = ENOMEM;
+            return NULL;
+        }
+    }
+    if (size < length + 1) {
+        errno = size == 0 ? EINVAL : ERANGE;
+        return NULL;
+    }
+    memcpy(buffer, working_folder, length + 1);
+    return buffer;
 }
 
 /* ------------------------------------------------------------------------- */
