@@ -46,6 +46,8 @@ answers listings from it; HTTPS uses the certificates in `assets/ps5/cacert.pem`
 - The console's `getcwd` crashes in a native title: `native/codename_ps5.c` answers it
   (`--wrap=getcwd`, `--wrap=chdir`, which also logs whether `chdir` worked). Do not call
   the system's own.
+- The console's `opendir` fails for the data folder: `opendir`, `readdir` and `closedir`
+  are wrapped, and a folder the system cannot open is read with `getdents`.
 - The working folder cannot be changed on the console (`Sys.setCwd` fails without an
   error), so Codename's relative paths are absolute there: `PS5.DATA_DIR` for mods,
   addons and autoload, `PS5.TEMP_DIR` for `.temp`. New relative paths in engine code

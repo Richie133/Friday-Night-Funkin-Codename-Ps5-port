@@ -290,6 +290,104 @@ char *__wrap_getcwd(char *buffer, size_t size)
 }
 
 /* ------------------------------------------------------------------------- */
+/* Directory listing                                                         */
+
+/* 0.1.7 could not list /data/codename-ps5/mods/: the console's opendir failed
+ * ("Invalid directory" from FileSystem.readDirectory). Linked with --wrap for
+ * opendir, readdir and closedir: the system's opendir is tried first; when it
+ * fails, the folder is opened and read with getdents, the call the system's own
+ * listing (and RetroArch's PlayStation port) uses. Both failures are logged. */
+#include <dirent.h>
+
+extern DIR *__real_opendir(const char *path);
+extern struct dirent *__real_readdir(DIR *directory);
+extern int __real_closedir(DIR *directory);
+/* getdents (libkernel) is declared in <dirent.h> */
+
+#define PORT_DIRECTORY_MAGIC 0x52494445454e4543ull /* "CNEEDIR" */
+
+typedef struct {
+    int descriptor; /* first, as in the system's DIR, for dirfd() */
+    int padding;
+    uint64_t magic;
+    size_t used, filled;
+    char buffer[16384] __attribute__((aligned(8)));
+} PortDirectory;
+
+static int logged_listing_fallback;
+
+DIR *__wrap_opendir(const char *path)
+{
+    DIR *directory = __real_opendir(path);
+    if (directory != NULL)
+        return directory;
+    const int system_error = errno;
+    const int descriptor = open(path, O_RDONLY | O_DIRECTORY);
+    if (descriptor < 0) {
+        fprintf(stderr, "[codename-ps5] cannot list %s: opendir: %s, open: %s\n", path ? path : "(null)",
+                strerror(system_error), strerror(errno));
+        errno = system_error;
+        return NULL;
+    }
+    PortDirectory *own = calloc(1, sizeof(*own));
+    if (own == NULL) {
+        close(descriptor);
+        errno = ENOMEM;
+        return NULL;
+    }
+    own->descriptor = descriptor;
+    own->magic = PORT_DIRECTORY_MAGIC;
+    if (!logged_listing_fallback) {
+        logged_listing_fallback = 1;
+        fprintf(stderr, "[codename-ps5] opendir(%s): %s; listing folders with getdents from now on\n", path,
+                strerror(system_error));
+    }
+    return (DIR *)own;
+}
+
+static PortDirectory *port_directory(DIR *directory)
+{
+    PortDirectory *own = (PortDirectory *)directory;
+    return own != NULL && own->magic == PORT_DIRECTORY_MAGIC ? own : NULL;
+}
+
+struct dirent *__wrap_readdir(DIR *directory)
+{
+    PortDirectory *own = port_directory(directory);
+    if (own == NULL)
+        return __real_readdir(directory);
+    for (;;) {
+        if (own->used < own->filled) {
+            struct dirent *entry = (struct dirent *)(own->buffer + own->used);
+            if (entry->d_reclen == 0 || own->used + entry->d_reclen > own->filled) {
+                own->used = own->filled = 0; /* malformed: stop */
+                return NULL;
+            }
+            own->used += entry->d_reclen;
+            if (entry->d_fileno == 0)
+                continue; /* a removed entry */
+            return entry;
+        }
+        const int length = getdents(own->descriptor, own->buffer, sizeof(own->buffer));
+        if (length <= 0)
+            return NULL;
+        own->filled = (size_t)length;
+        own->used = 0;
+    }
+}
+
+int __wrap_closedir(DIR *directory)
+{
+    PortDirectory *own = port_directory(directory);
+    if (own == NULL)
+        return __real_closedir(directory);
+    const int result = close(own->descriptor);
+    own->magic = 0;
+    free(own);
+    return result;
+}
+
+/* ------------------------------------------------------------------------- */
 /* Name lookup                                                               */
 
 extern int sceNetPoolCreate(const char *name, int size, int flags);
